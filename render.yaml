@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: ai-suites-web
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: APP_PASSWORD
+        value: TDsuperhuman
+      - key: VITE_APP_PASSWORD
+        value: TDsuperhuman
+      - key: NODE_ENV
+        value: production

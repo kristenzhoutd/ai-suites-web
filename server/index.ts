@@ -5,6 +5,15 @@
  * exposing the same functionality over HTTP/SSE endpoints.
  */
 
+// Prevent EPIPE crashes when SDK subprocess pipe closes
+process.on('uncaughtException', (error) => {
+  if (error.message?.includes('EPIPE') || error.message?.includes('write EPIPE')) {
+    console.warn('[Server] EPIPE error suppressed (subprocess pipe closed)');
+    return;
+  }
+  console.error('[Server] Uncaught exception:', error);
+});
+
 import express from 'express';
 import cors from 'cors';
 import path from 'node:path';
@@ -59,7 +68,7 @@ export { app };
 
 // Only start listening when running directly (not on Vercel)
 if (!process.env.VERCEL) {
-  const clientDir = path.join(__dirname, '../client');
+  const clientDir = path.join(__dirname, '../dist/client');
   app.use(express.static(clientDir));
   app.get('*', (_req, res) => {
     res.sendFile(path.join(clientDir, 'index.html'));
