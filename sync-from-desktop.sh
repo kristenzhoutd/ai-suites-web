@@ -2,15 +2,25 @@
 # Sync shared frontend code from ai-suites (desktop) to ai-suites-web.
 # Copies everything EXCEPT web-specific files that have diverged.
 #
-# Usage: ./sync-from-desktop.sh
+# Creates a new branch for review before merging to main.
+#
+# Usage: ./sync-from-desktop.sh              (sync to a new branch)
 #        ./sync-from-desktop.sh --dry-run    (preview changes without copying)
+#        ./sync-from-desktop.sh --direct     (sync directly on current branch, no new branch)
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SOURCE_DIR="$(cd "$SCRIPT_DIR/../ai-suites" && pwd)"
 DRY_RUN=""
+DIRECT=""
 
-if [ "$1" = "--dry-run" ]; then
-  DRY_RUN="--dry-run"
+for arg in "$@"; do
+  case $arg in
+    --dry-run) DRY_RUN="--dry-run" ;;
+    --direct)  DIRECT="true" ;;
+  esac
+done
+
+if [ -n "$DRY_RUN" ]; then
   echo "=== DRY RUN — no files will be changed ==="
   echo ""
 fi
@@ -18,6 +28,17 @@ fi
 if [ ! -d "$SOURCE_DIR/src" ]; then
   echo "Error: ai-suites not found at $SOURCE_DIR"
   exit 1
+fi
+
+# Create a sync branch (unless --direct or --dry-run)
+BRANCH_NAME=""
+if [ -z "$DRY_RUN" ] && [ -z "$DIRECT" ]; then
+  BRANCH_NAME="sync/desktop-$(date +%Y-%m-%d-%H%M)"
+  echo "Creating branch: $BRANCH_NAME"
+  git -C "$SCRIPT_DIR" checkout main 2>/dev/null
+  git -C "$SCRIPT_DIR" pull 2>/dev/null
+  git -C "$SCRIPT_DIR" checkout -b "$BRANCH_NAME"
+  echo ""
 fi
 
 echo "Syncing from $SOURCE_DIR → $SCRIPT_DIR"
@@ -75,14 +96,41 @@ for file in "${ROOT_FILES[@]}"; do
 done
 
 echo ""
-echo "Sync complete!"
-echo ""
 echo "Web-only files preserved (never overwritten):"
 for item in "${EXCLUDE_LIST[@]}"; do
   echo "  - $item"
 done
+
+if [ -n "$DRY_RUN" ]; then
+  echo ""
+  echo "Dry run complete. Run without --dry-run to apply changes."
+  exit 0
+fi
+
 echo ""
-echo "Next steps:"
-echo "  1. Review changes:  git diff"
-echo "  2. Test locally:    npm run dev"
-echo "  3. Deploy:          git add -A && git commit -m 'Sync from desktop' && git push"
+if [ -n "$BRANCH_NAME" ]; then
+  # Commit and push the branch
+  git -C "$SCRIPT_DIR" add -A
+  CHANGED=$(git -C "$SCRIPT_DIR" diff --cached --stat)
+  if [ -z "$CHANGED" ]; then
+    echo "No changes to sync — desktop and web are already in sync."
+    git -C "$SCRIPT_DIR" checkout main
+    git -C "$SCRIPT_DIR" branch -d "$BRANCH_NAME"
+    exit 0
+  fi
+
+  git -C "$SCRIPT_DIR" commit -m "Sync from desktop $(date +%Y-%m-%d)"
+  git -C "$SCRIPT_DIR" push -u origin "$BRANCH_NAME"
+
+  echo ""
+  echo "=== Done! ==="
+  echo ""
+  echo "Branch '$BRANCH_NAME' pushed. Next steps:"
+  echo ""
+  echo "  1. Test locally:     npm run dev"
+  echo "  2. Create PR:        gh pr create --title 'Sync from desktop' --body 'Automated sync from ai-suites desktop app'"
+  echo "  3. After testing:    git checkout main && git merge $BRANCH_NAME && git push"
+  echo ""
+else
+  echo "Sync complete. Review with 'git diff' and commit when ready."
+fi
