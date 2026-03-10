@@ -125,7 +125,7 @@ export default function CampaignLaunchWizardPage() {
             </div>
           ) : (
             <>
-              <div className="px-8 pt-6">
+              <div className="px-8 pt-3">
                 <LaunchToolbar state={state} />
 
                 {activeTab === 'meta' && (

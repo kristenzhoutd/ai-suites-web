@@ -130,7 +130,7 @@ export default function CampaignLaunchPage() {
             </div>
           ) : (
             /* Full forms content */
-            <div className="px-8 py-6">
+            <div className="px-8 pt-3 pb-6">
               <LaunchToolbar state={state} />
 
               {activeTab !== 'meta' ? (

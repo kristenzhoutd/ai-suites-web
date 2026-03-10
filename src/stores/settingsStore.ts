@@ -13,6 +13,10 @@ interface SettingsState {
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
   loadSettings: () => Promise<void>;
 
+  // Dashboard view toggle (Command Center)
+  dashboardView: 'manager' | 'cmo';
+  setDashboardView: (view: 'manager' | 'cmo') => void;
+
   // Parent segments (shared across Layout and wizard)
   parentSegments: ParentSegment[];
   selectedParentSegmentId: string | null;
@@ -33,6 +37,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     // Settings will be loaded from electron main process via IPC
     // For now, use defaults
     set({ theme: 'system' });
+  },
+
+  // Dashboard view
+  dashboardView: 'manager',
+  setDashboardView: (view) => {
+    set({ dashboardView: view });
   },
 
   // Parent segments

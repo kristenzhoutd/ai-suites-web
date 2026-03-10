@@ -53,10 +53,17 @@ EXCLUDE_LIST=(
   "src/components/PasswordGate.tsx"
 )
 
-# Build rsync exclude args
+# Build rsync exclude and protect args
+# --exclude prevents copying FROM source, --filter='P ...' prevents deleting FROM destination
 EXCLUDES=""
 for item in "${EXCLUDE_LIST[@]}"; do
   EXCLUDES="$EXCLUDES --exclude=$item"
+done
+PROTECTS=""
+for item in "${EXCLUDE_LIST[@]}"; do
+  # Extract just the filename for protection (rsync filters match relative paths)
+  basename=$(basename "$item")
+  PROTECTS="$PROTECTS --filter=P_${basename}"
 done
 
 # Sync shared directories
@@ -70,6 +77,8 @@ SHARED_DIRS=(
   "src/services"
   "src/types"
   "src/hooks"
+  "src/constants"
+  "src/config"
   "src/design-system"
   "public"
   "skills"
@@ -78,7 +87,7 @@ SHARED_DIRS=(
 for dir in "${SHARED_DIRS[@]}"; do
   if [ -d "$SOURCE_DIR/$dir" ]; then
     echo "  Syncing $dir/"
-    rsync -av --delete $DRY_RUN $EXCLUDES "$SOURCE_DIR/$dir/" "$SCRIPT_DIR/$dir/"
+    rsync -av --delete $DRY_RUN $EXCLUDES $PROTECTS "$SOURCE_DIR/$dir/" "$SCRIPT_DIR/$dir/"
   fi
 done
 

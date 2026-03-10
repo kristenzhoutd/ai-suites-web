@@ -143,6 +143,7 @@
   appearance: none;
   padding-right: 36px;
   cursor: pointer;
+  border: 1px solid var(--neutral-2) !important;
 }
 
 .select-wrapper .input:disabled {
@@ -186,8 +187,8 @@
 }
 
 .checkbox__input:checked {
-  background-color: #3348bd;
-  border-color: #3348bd;
+  background-color: var(--surface-checkbox, #020713);
+  border-color: var(--surface-checkbox, #020713);
 }
 
 .checkbox__input:checked::after {

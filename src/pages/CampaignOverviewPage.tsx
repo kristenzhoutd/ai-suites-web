@@ -16,17 +16,20 @@ import {
   Line,
   Legend,
 } from 'recharts';
-import { ArrowUp, ArrowDown, CheckCircle2, Lightbulb, AlertTriangle } from 'lucide-react';
+import { ArrowUp, CheckCircle2, Lightbulb, AlertTriangle } from 'lucide-react';
+import { CHART_COLORS } from '@/constants/chartColors';
 import { campaignConfigStorage } from '../services/campaignConfigStorage';
 import { useCampaignConfigStore } from '../stores/campaignConfigStore';
 import type { CampaignConfig } from '../types/campaignConfig';
 
 const AudienceComparisonReport = lazy(() => import('../components/reports/AudienceComparisonReport'));
 const PageDeepDiveReport = lazy(() => import('../components/reports/PageDeepDiveReport'));
-type OverviewTab = 'overview' | 'audiences' | 'pages';
+const PersonalizationCalendarView = lazy(() => import('../components/campaigns/PersonalizationCalendarView'));
+type OverviewTab = 'overview' | 'calendar' | 'audiences' | 'pages';
 
 const OVERVIEW_TABS: { id: OverviewTab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
+  { id: 'calendar', label: 'Calendar' },
   { id: 'audiences', label: 'Audience Comparison' },
   { id: 'pages', label: 'Page Deep Dive' },
 ];
@@ -296,7 +299,7 @@ function generateDeviceData(timeFrame: TimeFrame) {
   ];
 }
 
-const DEVICE_COLORS = ['#6366f1', '#10b981', '#f59e0b'];
+const DEVICE_COLORS = [CHART_COLORS[0], CHART_COLORS[1], CHART_COLORS[2]];
 
 function generateTrendData(campaigns: CampaignConfig[], timeFrame: TimeFrame) {
   const days = timeFrame === '7d' ? 7 : timeFrame === '30d' ? 30 : 90;
@@ -370,6 +373,7 @@ export default function CampaignOverviewPage() {
 
   const renderReportTab = () => {
     switch (activeTab) {
+      case 'calendar': return <PersonalizationCalendarView campaigns={allCampaigns} />;
       case 'audiences': return <AudienceComparisonReport />;
       case 'pages': return <PageDeepDiveReport />;
       default: return null;
@@ -379,8 +383,8 @@ export default function CampaignOverviewPage() {
   // ── Empty state ─────────────────────────────────────────────────
   if (launched.length === 0) {
     return (
-      <div className="h-full p-4">
-        <div className="h-full bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
+      <div className="flex h-full overflow-hidden p-6">
+        <div className="flex-1 bg-white rounded-2xl border border-[#E6E6E7] shadow-[0_2px_12px_rgba(0,0,0,0.06)] flex flex-col items-center justify-center text-center">
           <svg className="w-16 h-16 text-gray-200 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
           </svg>
@@ -404,47 +408,14 @@ export default function CampaignOverviewPage() {
 
   // ── Dashboard ───────────────────────────────────────────────────
   return (
-    <div className="h-full p-4">
-      <div className="h-full bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="h-full overflow-auto">
-          {/* Tab bar */}
-          <div className="px-6 pt-4 border-b border-gray-100">
-            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
-              {OVERVIEW_TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`relative whitespace-nowrap pb-3 px-3 text-[13px] font-medium transition-colors ${
-                    activeTab === tab.id
-                      ? 'text-gray-900'
-                      : 'text-gray-400 hover:text-gray-600'
-                  }`}
-                >
-                  {tab.label}
-                  {activeTab === tab.id && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 rounded-full" />
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {activeTab !== 'overview' ? (
-            <div className="p-6">
-              <Suspense fallback={
-                <div className="flex items-center justify-center py-24">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
-                </div>
-              }>
-                {renderReportTab()}
-              </Suspense>
-            </div>
-          ) : (
-          <>
-          {/* Header */}
-          <div className="px-6 py-6 flex items-center justify-between border-b border-gray-100">
+    <div className="flex h-full overflow-hidden p-6">
+      <div className="campaign-overview-scroll flex-1 flex flex-col overflow-y-auto bg-white rounded-2xl border border-[#E6E6E7] shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+        <style>{`.campaign-overview-scroll::-webkit-scrollbar { width: 6px; } .campaign-overview-scroll::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; } .campaign-overview-scroll::-webkit-scrollbar-track { background: transparent; }`}</style>
+        {/* Header */}
+        <div className="shrink-0 px-6 pt-6 pb-6">
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-medium text-gray-900">Overview</h1>
+              <h1 className="text-2xl font-semibold text-gray-900">Campaign Overview</h1>
               <p className="text-sm text-gray-500 mt-1">
                 Showing analytics for {launched.length} launched campaign{launched.length !== 1 ? 's' : ''}
               </p>
@@ -471,34 +442,48 @@ export default function CampaignOverviewPage() {
             </div>
           </div>
 
-          <div className="p-6 space-y-6">
-            {/* Row 1: Primary KPI Cards */}
-            <div className="grid grid-cols-4 gap-4">
-              <KpiCard
-                label="Unique Visitors"
-                value={kpis.totalVisitors.toLocaleString()}
-                delta={kpis.visitorsDelta}
-              />
-              <KpiCard
-                label="Avg CTR"
-                value={`${kpis.avgCtr.toFixed(2)}%`}
-                delta={kpis.ctrDelta}
-              />
-              <KpiCard
-                label="Avg Time on Page"
-                value={`${Math.floor(kpis.avgTimeOnPage / 60)}m ${Math.round(kpis.avgTimeOnPage % 60)}s`}
-                delta={kpis.timeDelta}
-              />
-              <KpiCard
-                label="Bounce Rate"
-                value={`${kpis.avgBounceRate.toFixed(1)}%`}
-                delta={kpis.bounceDelta}
-                invertTrend
-              />
-            </div>
+          {/* KPI Cards */}
+          <div className="flex gap-4 mt-6">
+            <KpiCard label="Unique Visitors" value={kpis.totalVisitors.toLocaleString()} delta={kpis.visitorsDelta} />
+            <KpiCard label="Avg CTR" value={`${kpis.avgCtr.toFixed(2)}%`} delta={kpis.ctrDelta} />
+            <KpiCard label="Avg Time on Page" value={`${Math.floor(kpis.avgTimeOnPage / 60)}m ${Math.round(kpis.avgTimeOnPage % 60)}s`} delta={kpis.timeDelta} />
+            <KpiCard label="Bounce Rate" value={`${kpis.avgBounceRate.toFixed(1)}%`} delta={kpis.bounceDelta} invertTrend />
+          </div>
+        </div>
 
-            {/* Row 2: Secondary KPIs + AI Insights */}
-            <div className="grid grid-cols-12 gap-4">
+        {/* Sticky tab bar */}
+        <div className="sticky top-0 z-10 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] py-4">
+          <div className="flex gap-1 px-6">
+            {OVERVIEW_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-2.5 text-sm transition-colors cursor-pointer rounded ${
+                  activeTab === tab.id
+                    ? 'bg-[#f2f3f3] text-[#020713] font-semibold'
+                    : 'text-[#636a77] font-normal hover:text-[#020713]'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {activeTab !== 'overview' ? (
+          <div className="p-6">
+            <Suspense fallback={
+              <div className="flex items-center justify-center py-24">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+              </div>
+            }>
+              {renderReportTab()}
+            </Suspense>
+          </div>
+        ) : (
+        <div className="p-6 space-y-6">
+            {/* Row 1: Secondary KPIs + AI Insights */}
+            <div className="grid grid-cols-12 gap-6">
               <div className="col-span-7 grid grid-cols-2 gap-4">
                 <KpiCard
                   label="Avg Conversion Rate"
@@ -532,35 +517,35 @@ export default function CampaignOverviewPage() {
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={topCampaigns} layout="vertical" margin={{ left: 10, right: 20, top: 0, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis type="number" tick={{ fontSize: 10, fill: '#9ca3af' }} domain={[0, 100]} unit="%" />
-                      <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: '#6b7280' }} width={140} />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                      <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} domain={[0, 100]} unit="%" />
+                      <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} width={140} />
                       <Tooltip
-                        contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #e5e7eb' }}
+                        contentStyle={{ fontSize: 12, borderRadius: 12, border: '1px solid #e5e7eb' }}
                         formatter={(value: number | undefined) => [`${(value ?? 0).toFixed(1)}%`, 'Performance']}
                       />
-                      <Bar dataKey="performance" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={16} />
+                      <Bar dataKey="performance" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} barSize={16} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
               </ChartCard>
             )}
 
-            {/* Row 4: CTR by Page + Conversion by Segment */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Row 3: CTR by Page + Conversion by Segment */}
+            <div className="grid grid-cols-2 gap-6">
               {ctrByPage.length > 0 && (
                 <ChartCard title="Click-Through Rate by Page">
                   <div className="h-52">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={ctrByPage} layout="vertical" margin={{ left: 10, right: 20, top: 0, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis type="number" tick={{ fontSize: 10, fill: '#9ca3af' }} unit="%" />
-                        <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: '#6b7280' }} width={120} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                        <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} unit="%" />
+                        <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} width={120} />
                         <Tooltip
-                          contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #e5e7eb' }}
+                          contentStyle={{ fontSize: 12, borderRadius: 12, border: '1px solid #e5e7eb' }}
                           formatter={(value: number | undefined) => [`${(value ?? 0).toFixed(2)}%`, 'CTR']}
                         />
-                        <Bar dataKey="ctr" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={14} />
+                        <Bar dataKey="ctr" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} barSize={14} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -571,14 +556,14 @@ export default function CampaignOverviewPage() {
                   <div className="h-52">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={convBySegment} layout="vertical" margin={{ left: 10, right: 20, top: 0, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis type="number" tick={{ fontSize: 10, fill: '#9ca3af' }} unit="%" />
-                        <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: '#6b7280' }} width={120} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                        <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} unit="%" />
+                        <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} width={120} />
                         <Tooltip
-                          contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #e5e7eb' }}
+                          contentStyle={{ fontSize: 12, borderRadius: 12, border: '1px solid #e5e7eb' }}
                           formatter={(value: number | undefined) => [`${(value ?? 0).toFixed(2)}%`, 'Conv Rate']}
                         />
-                        <Bar dataKey="convRate" fill="#10b981" radius={[0, 4, 4, 0]} barSize={14} />
+                        <Bar dataKey="convRate" fill={CHART_COLORS[1]} radius={[0, 4, 4, 0]} barSize={14} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -586,20 +571,20 @@ export default function CampaignOverviewPage() {
               )}
             </div>
 
-            {/* Row 5: Content Spot Engagement + Device Breakdown */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Row 4: Content Spot Engagement + Device Breakdown */}
+            <div className="grid grid-cols-2 gap-6">
               {spotEngagement.length > 0 && (
                 <ChartCard title="Content Spot Engagement" subtitle="Impressions vs Clicks">
                   <div className="h-52">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={spotEngagement} margin={{ left: -10, right: 10, top: 0, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#9ca3af' }} />
-                        <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} />
-                        <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #e5e7eb' }} />
-                        <Legend wrapperStyle={{ fontSize: 10 }} />
-                        <Bar dataKey="impressions" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={14} name="Impressions" />
-                        <Bar dataKey="clicks" fill="#a5b4fc" radius={[4, 4, 0, 0]} barSize={14} name="Clicks" />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                        <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                        <Tooltip contentStyle={{ fontSize: 12, borderRadius: 12, border: '1px solid #e5e7eb' }} />
+                        <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                        <Bar dataKey="impressions" fill={CHART_COLORS[0]} radius={[4, 4, 0, 0]} barSize={14} name="Impressions" />
+                        <Bar dataKey="clicks" fill={CHART_COLORS[1]} radius={[4, 4, 0, 0]} barSize={14} name="Clicks" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -625,7 +610,7 @@ export default function CampaignOverviewPage() {
                         ))}
                       </Pie>
                       <Tooltip
-                        contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #e5e7eb' }}
+                        contentStyle={{ fontSize: 12, borderRadius: 12, border: '1px solid #e5e7eb' }}
                         formatter={(value: number | undefined) => [`${value ?? 0}%`, 'Share']}
                       />
                     </PieChart>
@@ -641,21 +626,21 @@ export default function CampaignOverviewPage() {
                   <AreaChart data={trendData} margin={{ left: -10, right: 20, top: 10, bottom: 0 }}>
                     <defs>
                       <linearGradient id="visitorsGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
-                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                        <stop offset="5%" stopColor={CHART_COLORS[0]} stopOpacity={0.2} />
+                        <stop offset="95%" stopColor={CHART_COLORS[0]} stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} />
-                    <YAxis yAxisId="visitors" tick={{ fontSize: 10, fill: '#9ca3af' }} />
-                    <YAxis yAxisId="ctr" orientation="right" tick={{ fontSize: 10, fill: '#9ca3af' }} unit="%" />
-                    <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #e5e7eb' }} />
-                    <Legend wrapperStyle={{ fontSize: 10 }} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                    <YAxis yAxisId="visitors" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                    <YAxis yAxisId="ctr" orientation="right" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} unit="%" />
+                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 12, border: '1px solid #e5e7eb' }} />
+                    <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
                     <Area
                       yAxisId="visitors"
                       type="monotone"
                       dataKey="visitors"
-                      stroke="#6366f1"
+                      stroke={CHART_COLORS[0]}
                       strokeWidth={2}
                       fill="url(#visitorsGrad)"
                       name="Visitors"
@@ -664,7 +649,7 @@ export default function CampaignOverviewPage() {
                       yAxisId="ctr"
                       type="monotone"
                       dataKey="ctr"
-                      stroke="#f59e0b"
+                      stroke={CHART_COLORS[1]}
                       strokeWidth={2}
                       dot={false}
                       name="CTR %"
@@ -680,19 +665,19 @@ export default function CampaignOverviewPage() {
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={liftData} margin={{ left: -10, right: 20, top: 0, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#9ca3af' }} />
-                      <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} unit="%" />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                      <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} unit="%" />
                       <Tooltip
-                        contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #e5e7eb' }}
+                        contentStyle={{ fontSize: 12, borderRadius: 12, border: '1px solid #e5e7eb' }}
                         formatter={(value: number | undefined, name: string | undefined) => [
                           `${(value ?? 0).toFixed(2)}%`,
                           name === 'control' ? 'Control' : 'Personalized',
                         ]}
                       />
-                      <Legend wrapperStyle={{ fontSize: 10 }} />
+                      <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
                       <Bar dataKey="control" fill="#d1d5db" radius={[4, 4, 0, 0]} barSize={14} name="Control" />
-                      <Bar dataKey="personalized" fill="#10b981" radius={[4, 4, 0, 0]} barSize={14} name="Personalized" />
+                      <Bar dataKey="personalized" fill={CHART_COLORS[1]} radius={[4, 4, 0, 0]} barSize={14} name="Personalized" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -707,10 +692,8 @@ export default function CampaignOverviewPage() {
                 </div>
               </ChartCard>
             )}
-          </div>
-          </>
-          )}
         </div>
+        )}
       </div>
     </div>
   );
@@ -726,46 +709,52 @@ function KpiCard({ label, value, delta, invertTrend = false }: {
 }) {
   const trend = delta > 0.5 ? 'up' : delta < -0.5 ? 'down' : 'flat';
   const isPositive = invertTrend ? trend === 'down' : trend === 'up';
-  const isNegative = invertTrend ? trend === 'up' : trend === 'down';
-
-  const trendColor = isPositive ? 'text-green-600' : isNegative ? 'text-red-500' : 'text-gray-400';
-  const bgColor = isPositive
-    ? 'bg-green-50 border-green-100'
-    : isNegative
-      ? 'bg-red-50 border-red-100'
-      : 'bg-gray-50 border-gray-100';
-
-  const TrendIcon = trend === 'up' ? ArrowUp : trend === 'down' ? ArrowDown : null;
+  const isGood = isPositive;
 
   return (
-    <div className={`rounded-xl border p-4 ${bgColor}`}>
-      <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-1">{label}</p>
-      <p className="text-xl font-bold text-gray-900">{value}</p>
-      <div className={`flex items-center gap-1 mt-1.5 ${trendColor}`}>
-        {TrendIcon && <TrendIcon className="w-3 h-3" />}
-        <span className="text-[10px] font-semibold">{Math.abs(delta).toFixed(1)}%</span>
-        <span className="text-[10px] text-gray-400 ml-1">vs prev</span>
+    <div className="flex-1 min-w-[160px] bg-white rounded-2xl p-4 border border-[#E6E6E7] shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs text-gray-400 font-medium">{label}</span>
       </div>
+      <div className="text-2xl font-bold text-gray-900">{value}</div>
+      {trend !== 'flat' && (
+        <div className="flex items-center gap-1 mt-1">
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              className={isGood ? 'text-emerald-500' : 'text-red-500'}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d={trend === 'up' ? 'M7 17l5-5 5 5' : 'M7 7l5 5 5-5'}
+              stroke="currentColor"
+            />
+          </svg>
+          <span className={`text-xs font-medium ${isGood ? 'text-emerald-500' : 'text-red-500'}`}>
+            {Math.abs(delta).toFixed(1)}%
+          </span>
+          <span className="text-[10px] text-gray-400 ml-1">vs prev</span>
+        </div>
+      )}
     </div>
   );
 }
 
 function InsightsPanel({ summary, suggestions }: { summary: string; suggestions: Insight[] }) {
   const typeConfig: Record<string, { icon: typeof CheckCircle2; color: string; bg: string }> = {
-    success: { icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50 border-green-100' },
-    opportunity: { icon: Lightbulb, color: 'text-amber-600', bg: 'bg-amber-50 border-amber-100' },
-    warning: { icon: AlertTriangle, color: 'text-red-500', bg: 'bg-red-50 border-red-100' },
+    success: { icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50/80 border-emerald-100' },
+    opportunity: { icon: Lightbulb, color: 'text-amber-500', bg: 'bg-amber-50/80 border-amber-100' },
+    warning: { icon: AlertTriangle, color: 'text-red-500', bg: 'bg-red-50/80 border-red-100' },
   };
   const impactBadge: Record<string, string> = {
-    high: 'bg-red-100 text-red-700',
-    medium: 'bg-amber-100 text-amber-700',
-    low: 'bg-gray-100 text-gray-600',
+    high: 'bg-emerald-50 text-emerald-600',
+    medium: 'bg-amber-50 text-amber-600',
+    low: 'bg-gray-100 text-gray-500',
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 h-full">
-      <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wide mb-2">AI Generated Insights</p>
-      <p className="text-xs text-gray-600 leading-relaxed mb-4">{summary}</p>
+    <div className="bg-white rounded-xl p-5 border border-[#E6E6E7] shadow-[0_1px_4px_rgba(0,0,0,0.03)] h-full">
+      <h3 className="text-sm font-semibold text-gray-900 mb-1">AI Insights</h3>
+      <p className="text-[11px] text-gray-400 leading-relaxed mb-4">{summary}</p>
       <div className="space-y-2">
         {suggestions.map((suggestion, i) => {
           const cfg = typeConfig[suggestion.type] || typeConfig.success;
@@ -776,11 +765,11 @@ function InsightsPanel({ summary, suggestions }: { summary: string; suggestions:
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
                   <span className="text-[11px] font-semibold text-gray-900">{suggestion.title}</span>
-                  <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${impactBadge[suggestion.impact] || impactBadge.low}`}>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${impactBadge[suggestion.impact] || impactBadge.low}`}>
                     {suggestion.impact}
                   </span>
                 </div>
-                <p className="text-[11px] text-gray-600 leading-relaxed">{suggestion.description}</p>
+                <p className="text-[11px] text-gray-400 leading-relaxed">{suggestion.description}</p>
               </div>
             </div>
           );
@@ -792,10 +781,10 @@ function InsightsPanel({ summary, suggestions }: { summary: string; suggestions:
 
 function ChartCard({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5">
-      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">{title}</p>
-      {subtitle && <p className="text-[10px] text-gray-400 mb-3">{subtitle}</p>}
-      {!subtitle && <div className="mb-3" />}
+    <div className="bg-white rounded-xl p-5 border border-[#E6E6E7] shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
+      <h3 className="text-sm font-semibold text-gray-900 mb-1">{title}</h3>
+      {subtitle && <p className="text-xs text-gray-400 mb-5">{subtitle}</p>}
+      {!subtitle && <div className="mb-5" />}
       {children}
     </div>
   );

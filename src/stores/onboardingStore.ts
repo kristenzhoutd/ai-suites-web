@@ -3,6 +3,7 @@ import { create } from 'zustand';
 const STORAGE_KEY = 'ai-suites-pm-onboarding';
 
 export interface OnboardingProfile {
+  name: string;
   industry: string;
   role: string;
   goals: string[];
@@ -47,13 +48,13 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
   setStep: (step) => set({ currentStep: step }),
 
   updateProfile: (partial) => {
-    const current = get().profile || { industry: '', role: '', goals: [], keyMetrics: [] };
+    const current = get().profile || { name: '', industry: '', role: '', goals: [], keyMetrics: [] };
     set({ profile: { ...current, ...partial } });
   },
 
   completeOnboarding: () => {
     const profile = get().profile;
-    set({ completed: true, currentStep: 4 });
+    set({ completed: true, currentStep: 5 });
     saveToStorage(true, profile);
   },
 

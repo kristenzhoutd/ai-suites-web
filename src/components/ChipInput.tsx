@@ -1,4 +1,5 @@
 import { useState, useRef, type KeyboardEvent } from 'react';
+import { Tag } from '@/design-system';
 
 interface ChipInputProps {
   value: string[];
@@ -33,25 +34,18 @@ export default function ChipInput({ value, onChange, placeholder = 'Add item...'
 
   return (
     <div
-      className="flex flex-wrap gap-1.5 p-2 border border-gray-200 rounded-lg bg-white min-h-[38px] cursor-text"
+      className="flex flex-wrap gap-2 p-2 border border-[var(--border-default,#e6e6e7)] rounded-lg bg-white min-h-[80px] items-start cursor-text"
       onClick={() => inputRef.current?.focus()}
     >
       {value.map((chip, i) => (
-        <span
+        <Tag
           key={i}
-          className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded-full"
+          variant="neutral"
+          style={{ fontSize: '12px' }}
+          onClose={() => removeChip(i)}
         >
           {chip}
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); removeChip(i); }}
-            className="w-3.5 h-3.5 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-full"
-          >
-            <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </span>
+        </Tag>
       ))}
       <input
         ref={inputRef}
@@ -61,7 +55,7 @@ export default function ChipInput({ value, onChange, placeholder = 'Add item...'
         onKeyDown={handleKeyDown}
         onBlur={() => { if (inputValue.trim()) addChip(inputValue); }}
         placeholder={value.length === 0 ? placeholder : ''}
-        className="flex-1 min-w-[80px] text-xs text-gray-700 placeholder-gray-400 outline-none bg-transparent"
+        className="flex-1 min-w-[80px] text-sm text-[var(--text-default,#020713)] placeholder-[var(--text-placeholder,#9a9ca1)] outline-none bg-transparent"
       />
     </div>
   );

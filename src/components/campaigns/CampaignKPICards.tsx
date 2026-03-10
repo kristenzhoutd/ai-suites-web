@@ -32,10 +32,11 @@ export default function CampaignKPICards({ campaigns, programs = [] }: CampaignK
       return endingSoon || overspent || paused;
     }).length;
 
-    // 4. Launch Pipeline (programs ready to launch)
+    // 4. Launch Pipeline (programs ready to launch + in progress)
     const readyToLaunch = programs.filter(p => p.status === 'ready_to_launch').length;
+    const inProgress = programs.filter(p => p.status === 'in_progress' || p.status === 'draft').length;
 
-    return { activeCampaigns, totalBudget, totalSpent, budgetUtilization, needsAttention, readyToLaunch };
+    return { activeCampaigns, totalBudget, totalSpent, budgetUtilization, needsAttention, readyToLaunch, inProgress };
   }, [campaigns, programs]);
 
   return (
@@ -59,7 +60,7 @@ export default function CampaignKPICards({ campaigns, programs = [] }: CampaignK
           <DollarSign className="w-3 h-3 text-gray-300" />
         </div>
         <div className="text-xl font-bold text-gray-900">
-          ${(kpis.totalBudget / 1000).toFixed(0)}k
+          ${kpis.totalBudget >= 1000 ? `${(kpis.totalBudget / 1000).toFixed(0)}k` : kpis.totalBudget}
         </div>
         <div className="flex items-center gap-1.5">
           <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden">
@@ -92,7 +93,7 @@ export default function CampaignKPICards({ campaigns, programs = [] }: CampaignK
         </div>
         <div className="text-xl font-bold text-purple-600">{kpis.readyToLaunch}</div>
         <span className="text-[10px] text-gray-400">
-          {programs.length - kpis.readyToLaunch} in progress
+          {kpis.inProgress} in progress
         </span>
       </div>
     </div>

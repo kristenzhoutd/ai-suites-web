@@ -37,6 +37,10 @@ export default function SettingsPage() {
   const [loadingAgents, setLoadingAgents] = useState(false);
   const [agentError, setAgentError] = useState<string | null>(null);
 
+  // Track whether credentials are already saved in keychain
+  const [hasStoredApiKey, setHasStoredApiKey] = useState(false);
+  const [hasStoredTdxApiKey, setHasStoredTdxApiKey] = useState(false);
+
   // UI state
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -49,10 +53,8 @@ export default function SettingsPage() {
       try {
         const settings = await window.aiSuites?.settings.get();
         if (settings) {
-          if (settings.tdxApiKey) setTdxApiKey(settings.tdxApiKey as string);
           if (settings.tdxEndpoint) setTdxEndpoint(settings.tdxEndpoint as string);
           if (settings.tdxDatabase) setTdxDatabase(settings.tdxDatabase as string);
-          if (settings.apiKey) setApiKey(settings.apiKey as string);
           if (settings.llmProxyUrl) setLlmProxyUrl(settings.llmProxyUrl as string);
           if (settings.model) setModel(settings.model as string);
           if (settings.imageGenAgentName) {
@@ -63,6 +65,10 @@ export default function SettingsPage() {
               setSelectedAgent(val.slice(lastSlash + 1));
             }
           }
+          // API keys are never returned from the backend for security.
+          // Use per-key flags to show saved state in the UI.
+          if (settings.hasStoredApiKey) setHasStoredApiKey(true);
+          if (settings.hasStoredTdxApiKey) setHasStoredTdxApiKey(true);
         }
       } catch (error) {
         console.error('Failed to load settings:', error);
@@ -123,14 +129,21 @@ export default function SettingsPage() {
 
     try {
       await window.aiSuites?.settings.set({
-        tdxApiKey: tdxApiKey || undefined,
+        // Only send API keys if the user entered a new value
+        ...(tdxApiKey ? { tdxApiKey } : {}),
         tdxEndpoint: tdxEndpoint || TDX_REGIONS[0].value,
         tdxDatabase: tdxDatabase || undefined,
-        apiKey,
+        ...(apiKey ? { apiKey } : {}),
         llmProxyUrl: llmProxyUrl || DEFAULT_LLM_PROXY_URL,
         model: model || undefined,
         imageGenAgentName: selectedProject && selectedAgent ? `${selectedProject}/${selectedAgent}` : undefined,
       });
+      // Mark keys as stored if the user just entered them
+      if (apiKey) setHasStoredApiKey(true);
+      if (tdxApiKey) setHasStoredTdxApiKey(true);
+      // Clear the plaintext from local state after saving
+      setApiKey('');
+      setTdxApiKey('');
       setSaveMessage('Configuration saved successfully.');
     } catch (error) {
       console.error('Failed to save config:', error);
@@ -192,7 +205,7 @@ export default function SettingsPage() {
               type="password"
               value={tdxApiKey}
               onChange={(e) => setTdxApiKey(e.target.value)}
-              placeholder="1/xxxxxxxxxxxxxxxx"
+              placeholder={hasStoredTdxApiKey ? '••••/••••••••••••••••••••••••••••••••••••••••' : '1/xxxxxxxxxxxxxxxx'}
             />
 
             {/* Database */}
@@ -206,7 +219,7 @@ export default function SettingsPage() {
 
             {/* Connection status */}
             <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-              {tdxApiKey ? (
+              {tdxApiKey || hasStoredTdxApiKey ? (
                 <>
                   <div className="w-2 h-2 rounded-full bg-green-400" />
                   <span className="text-xs text-gray-500">TDX API key configured</span>
@@ -245,7 +258,7 @@ export default function SettingsPage() {
               type="password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              placeholder="1/xxxxxxxxxxxxxxxx"
+              placeholder={hasStoredApiKey ? '••••/••••••••••••••••••••••••••••••••••••••••' : '1/xxxxxxxxxxxxxxxx'}
             />
 
             {/* Model Selection */}
@@ -320,7 +333,7 @@ export default function SettingsPage() {
 
             {/* Connection status */}
             <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-              {apiKey ? (
+              {apiKey || hasStoredApiKey ? (
                 <>
                   <div className="w-2 h-2 rounded-full bg-green-400" />
                   <span className="text-xs text-gray-500">LLM API key configured</span>
@@ -350,7 +363,7 @@ export default function SettingsPage() {
               variant="outline"
               size="sm"
               onClick={handleTestConnection}
-              disabled={isTesting || (!apiKey && !tdxApiKey)}
+              disabled={isTesting || (!apiKey && !tdxApiKey && !hasStoredApiKey && !hasStoredTdxApiKey)}
             >
               {isTesting ? 'Testing...' : 'Test Connection'}
             </Button>

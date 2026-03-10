@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
+import { CHART_COLORS } from '@/constants/chartColors';
 import {
   RadarChart,
   Radar,
@@ -22,7 +23,7 @@ import {
 // Audience comparison data
 // ---------------------------------------------------------------------------
 
-const AUDIENCE_COLORS = ['#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'] as const;
+const AUDIENCE_COLORS = CHART_COLORS;
 
 interface AudienceData {
   id: string;
@@ -163,14 +164,14 @@ const TrendIcon = ({ trend }: { trend: 'up' | 'down' | 'neutral' }) => {
 };
 
 const trendColor = (trend: 'up' | 'down' | 'neutral') => {
-  if (trend === 'up') return 'text-green-600';
+  if (trend === 'up') return 'text-emerald-500';
   if (trend === 'down') return 'text-red-500';
   return 'text-gray-400';
 };
 
 const tooltipStyle = {
-  fontSize: 11,
-  borderRadius: 8,
+  fontSize: 12,
+  borderRadius: 12,
   border: '1px solid #e5e7eb',
 };
 
@@ -212,11 +213,11 @@ export default function AudienceComparisonReport() {
       {/* ── Reach KPI cards ─────────────────────────────────────────── */}
       <div className="grid grid-cols-4 gap-4">
         {reachKpis.map((kpi) => (
-          <div key={kpi.label} className="rounded-xl border border-gray-100 p-4">
-            <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-1">
+          <div key={kpi.label} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
+            <span className="text-xs text-gray-400 font-medium">
               {kpi.label}
-            </p>
-            <p className="text-xl font-bold text-gray-900">
+            </span>
+            <p className="text-2xl font-bold text-gray-900 mt-2">
               {kpi.value}
               {kpi.subtext && (
                 <span className="text-xs font-normal text-gray-400 ml-1">({kpi.subtext})</span>
@@ -275,8 +276,8 @@ export default function AudienceComparisonReport() {
 
       {/* ── Radar + Conversion comparison ───────────────────────────── */}
       <div className="grid grid-cols-2 gap-6">
-        <div className="rounded-2xl border border-gray-100 p-5">
-          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-4">
+        <div className="rounded-xl border border-gray-100 p-5 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
+          <p className="text-sm font-semibold text-gray-900 mb-4">
             Audience Performance Radar
           </p>
           <div className="h-72">
@@ -285,12 +286,12 @@ export default function AudienceComparisonReport() {
                 <PolarGrid stroke="#e5e7eb" />
                 <PolarAngleAxis
                   dataKey="metric"
-                  tick={{ fontSize: 10, fill: '#6b7280' }}
+                  tick={{ fontSize: 11, fill: '#6b7280' }}
                 />
                 <PolarRadiusAxis
                   angle={90}
                   domain={[0, 100]}
-                  tick={{ fontSize: 9, fill: '#9ca3af' }}
+                  tick={{ fontSize: 11, fill: '#9ca3af' }}
                 />
                 {activeAudiences.map((aud) => (
                   <Radar
@@ -302,30 +303,32 @@ export default function AudienceComparisonReport() {
                     fillOpacity={0.15}
                   />
                 ))}
-                <Legend wrapperStyle={{ fontSize: 10, paddingTop: 8 }} />
+                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
                 <Tooltip contentStyle={tooltipStyle} />
               </RadarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-100 p-5">
-          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-4">
+        <div className="rounded-xl border border-gray-100 p-5 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
+          <p className="text-sm font-semibold text-gray-900 mb-4">
             Conversion Rate Comparison
           </p>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={barData} margin={{ left: 0, right: 10, top: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                 <XAxis
                   dataKey="name"
-                  tick={{ fontSize: 9, fill: '#6b7280' }}
+                  tick={{ fontSize: 11, fill: '#6b7280' }}
+                  axisLine={false}
+                  tickLine={false}
                   interval={0}
                   angle={-20}
                   textAnchor="end"
                   height={60}
                 />
-                <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} unit="%" />
+                <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} unit="%" />
                 <Tooltip
                   contentStyle={tooltipStyle}
                   formatter={(value: number | undefined) => [`${(value ?? 0).toFixed(1)}%`, 'Conv. Rate']}
@@ -343,8 +346,8 @@ export default function AudienceComparisonReport() {
 
       {/* ── Reach by Page + Coverage Trend ──────────────────────────── */}
       <div className="grid grid-cols-2 gap-6">
-        <div className="rounded-2xl border border-gray-100 p-5">
-          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-4">
+        <div className="rounded-xl border border-gray-100 p-5 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
+          <p className="text-sm font-semibold text-gray-900 mb-4">
             Reach % by Page
           </p>
           <div className="h-56">
@@ -354,31 +357,35 @@ export default function AudienceComparisonReport() {
                 layout="vertical"
                 margin={{ left: 10, right: 20, top: 0, bottom: 0 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                 <XAxis
                   type="number"
-                  tick={{ fontSize: 10, fill: '#9ca3af' }}
+                  tick={{ fontSize: 11, fill: '#9ca3af' }}
+                  axisLine={false}
+                  tickLine={false}
                   domain={[0, 100]}
                   unit="%"
                 />
                 <YAxis
                   type="category"
                   dataKey="page"
-                  tick={{ fontSize: 10, fill: '#6b7280' }}
+                  tick={{ fontSize: 11, fill: '#6b7280' }}
+                  axisLine={false}
+                  tickLine={false}
                   width={100}
                 />
                 <Tooltip
                   contentStyle={tooltipStyle}
                   formatter={(value: number | undefined) => [`${value ?? 0}%`, 'Reach']}
                 />
-                <Bar dataKey="reach" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={16} />
+                <Bar dataKey="reach" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} barSize={16} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-100 p-5">
-          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-4">
+        <div className="rounded-xl border border-gray-100 p-5 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
+          <p className="text-sm font-semibold text-gray-900 mb-4">
             Coverage Trend (12 weeks)
           </p>
           <div className="h-56">
@@ -387,10 +394,12 @@ export default function AudienceComparisonReport() {
                 data={coverageTrendData}
                 margin={{ left: 0, right: 20, top: 0, bottom: 0 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="week" tick={{ fontSize: 10, fill: '#9ca3af' }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
                 <YAxis
-                  tick={{ fontSize: 10, fill: '#9ca3af' }}
+                  tick={{ fontSize: 11, fill: '#9ca3af' }}
+                  axisLine={false}
+                  tickLine={false}
                   domain={[0, 100]}
                   unit="%"
                 />
@@ -401,9 +410,9 @@ export default function AudienceComparisonReport() {
                 <Area
                   type="monotone"
                   dataKey="coverage"
-                  stroke="#10b981"
+                  stroke={CHART_COLORS[1]}
                   fillOpacity={0.1}
-                  fill="#10b981"
+                  fill={CHART_COLORS[1]}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -412,8 +421,8 @@ export default function AudienceComparisonReport() {
       </div>
 
       {/* ── All Metrics table ───────────────────────────────────────── */}
-      <div className="rounded-2xl border border-gray-100 p-5">
-        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-4">
+      <div className="rounded-xl border border-gray-100 p-5 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
+        <p className="text-sm font-semibold text-gray-900 mb-4">
           All Metrics
         </p>
         <div className="overflow-x-auto">

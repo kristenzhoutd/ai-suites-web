@@ -433,15 +433,15 @@ const CampaignChatPage = () => {
   // MUST run BEFORE auto-send so loadMessages([]) clears stale state
   // before the auto-send adds the new user message.
 
-  const programIdConsumedRef = useRef(false);
+  const programIdConsumedRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!chatSessionReady) return;
     const locState = location.state as { programId?: string; editBrief?: boolean } | null;
     const programId = locState?.programId;
     const editBrief = locState?.editBrief ?? false;
-    if (!programId || programIdConsumedRef.current) return;
-    programIdConsumedRef.current = true;
+    if (!programId || programIdConsumedRef.current === programId) return;
+    programIdConsumedRef.current = programId;
 
     useProgramStore.getState().setActiveProgram(programId);
 
@@ -488,9 +488,11 @@ const CampaignChatPage = () => {
           useBlueprintStore.getState().selectBlueprint(program.approvedBlueprintId);
         }
       });
-    } else if (editBrief) {
-      // Force brief editor view
+    } else {
+      // No blueprints — clear stale plan state so brief editor shows
       useBlueprintStore.getState().setHasGeneratedPlan(false);
+      useBlueprintStore.getState().setApprovedBlueprintId(null);
+      useBlueprintStore.getState().selectBlueprint(null);
     }
 
     // Restore chat history
@@ -498,8 +500,32 @@ const CampaignChatPage = () => {
     const savedMessages = chatHistoryStorage.getMessages(historyKey);
     if (savedMessages.length > 0) {
       useChatStore.getState().loadMessages(savedMessages);
+    } else if (program.id.startsWith('demo-prog-') && program.briefSnapshot) {
+      // Seed demo chat history so the chat panel has context
+      const briefData = (() => { try { return JSON.parse(program.briefSnapshot!); } catch { return null; } })();
+      if (briefData) {
+        const demoMessages = [
+          { id: `${program.id}-msg-1`, role: 'user' as const, content: `Create a campaign brief for ${briefData.campaignDetails || program.name}. Business objective: ${briefData.businessObjective || 'Drive awareness and conversions'}. Budget: ${briefData.budgetAmount || 'TBD'}.`, timestamp: new Date(program.createdAt) },
+          { id: `${program.id}-msg-2`, role: 'assistant' as const, content: `I've created your campaign brief for **${briefData.campaignDetails || program.name}**.\n\nHere's what I've set up:\n- **Objective:** ${briefData.businessObjective || 'Drive results'}\n- **Budget:** ${briefData.budgetAmount || 'TBD'}\n- **Channels:** ${(briefData.mandatoryChannels || []).join(', ') || 'To be determined'}\n- **Primary Audience:** ${(briefData.primaryAudience || []).join(', ') || 'To be determined'}\n- **Timeline:** ${briefData.timelineStart || ''} to ${briefData.timelineEnd || ''}\n\nThe brief editor is now open on the right. You can review and edit any field, or click **Generate Plan** when ready.`, timestamp: new Date(program.createdAt) },
+        ];
+        useChatStore.getState().loadMessages(demoMessages);
+      }
     }
   }, [chatSessionReady, location.state]);
+
+  // ---- Select blueprint from query param ----
+  const blueprintIdConsumedRef = useRef(false);
+
+  useEffect(() => {
+    if (!blueprintIdParam || blueprintIdConsumedRef.current) return;
+    blueprintIdConsumedRef.current = true;
+
+    // Load blueprints from disk, then select the requested one
+    useBlueprintStore.getState().loadBlueprints().then(() => {
+      useBlueprintStore.getState().setHasGeneratedPlan(true);
+      useBlueprintStore.getState().selectBlueprint(blueprintIdParam);
+    });
+  }, [blueprintIdParam]);
 
   // ---- Auto-send brief from query params ----
 

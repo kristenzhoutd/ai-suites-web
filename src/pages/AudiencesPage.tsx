@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { campaignConfigStorage } from '../services/campaignConfigStorage';
 import { localBriefStorage } from '../services/briefStorage';
+import { Tag } from '@/design-system';
 
 interface UsedIn {
   id: string;
@@ -182,13 +183,13 @@ function AudienceCard({ entry }: { entry: AudienceEntry }) {
           <div className="flex items-center gap-2">
             <h3 className="text-base font-medium text-gray-900 truncate">{entry.name}</h3>
             {entry.isNew ? (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+              <Tag variant="success" style={{ fontSize: '12px', backgroundColor: '#e7f7f1', color: '#0a6a47', borderRadius: '6px' }}>
                 New
-              </span>
+              </Tag>
             ) : (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+              <Tag variant="success" style={{ fontSize: '12px', backgroundColor: '#e7f7f1', color: '#0a6a47', borderRadius: '6px' }}>
                 Existing
-              </span>
+              </Tag>
             )}
           </div>
 
@@ -198,12 +199,17 @@ function AudienceCard({ entry }: { entry: AudienceEntry }) {
 
           {entry.usedIn.length > 0 && (
             <div className="flex items-center mt-3">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
-                </svg>
-                {entry.usedIn.length} campaign{entry.usedIn.length !== 1 ? 's' : ''}
-              </span>
+              <Tag
+                variant="neutral"
+                style={{ fontSize: '12px' }}
+                icon={
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                  </svg>
+                }
+              >
+                {`${entry.usedIn.length} campaign${entry.usedIn.length !== 1 ? 's' : ''}`}
+              </Tag>
             </div>
           )}
         </div>

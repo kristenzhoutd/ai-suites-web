@@ -214,7 +214,7 @@ export default function PageDeepDiveReport() {
       <div className="flex items-center gap-3">
         <label
           htmlFor="page-selector"
-          className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide"
+          className="text-sm font-semibold text-gray-500 uppercase tracking-wide"
         >
           Page
         </label>
@@ -223,7 +223,7 @@ export default function PageDeepDiveReport() {
             id="page-selector"
             value={selectedPage}
             onChange={(e) => setSelectedPage(e.target.value)}
-            className="appearance-none rounded-lg border border-gray-200 bg-white pl-3 pr-8 py-1.5 text-[13px] font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+            className="appearance-none rounded-lg border border-gray-200 bg-white pl-3 pr-8 py-1.5 text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
           >
             {PAGE_OPTIONS.map((p) => (
               <option key={p.value} value={p.value}>
@@ -252,14 +252,14 @@ export default function PageDeepDiveReport() {
 
           return (
             <div key={kpi.label} className="rounded-xl border border-gray-100 p-4">
-              <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-1">
+              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">
                 {kpi.label}
               </p>
               <p className="text-xl font-bold text-gray-900">{kpi.value}</p>
               <div className={`flex items-center gap-1 mt-1.5 ${trendColor}`}>
                 <TrendIndicator trend={kpi.trend} invertTrend={kpi.invertTrend} />
-                <span className="text-[10px] font-semibold">{kpi.trendValue}</span>
-                <span className="text-[10px] text-gray-400 ml-1">vs prev</span>
+                <span className="text-xs font-semibold">{kpi.trendValue}</span>
+                <span className="text-xs text-gray-400 ml-1">vs prev</span>
               </div>
             </div>
           );
@@ -268,29 +268,29 @@ export default function PageDeepDiveReport() {
 
       {/* ---- Content Spots ---- */}
       <div>
-        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-3">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">
           Content Spots
         </p>
         <div className="grid grid-cols-2 gap-4">
           {data.spots.map((spot) => (
             <div key={spot.name} className="rounded-xl border border-gray-100 p-4">
-              <p className="text-[11px] font-medium text-gray-900 mb-2">{spot.name}</p>
+              <p className="text-sm font-medium text-gray-900 mb-2">{spot.name}</p>
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <p className="text-[10px] text-gray-400">Impressions</p>
-                  <p className="text-[11px] font-semibold text-gray-700">
+                  <p className="text-xs text-gray-400">Impressions</p>
+                  <p className="text-sm font-semibold text-gray-700">
                     {spot.impressions.toLocaleString()}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-gray-400">Clicks</p>
-                  <p className="text-[11px] font-semibold text-gray-700">
+                  <p className="text-xs text-gray-400">Clicks</p>
+                  <p className="text-sm font-semibold text-gray-700">
                     {spot.clicks.toLocaleString()}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-gray-400">CTR</p>
-                  <p className="text-[11px] font-semibold text-gray-700">{spot.ctr.toFixed(1)}%</p>
+                  <p className="text-xs text-gray-400">CTR</p>
+                  <p className="text-sm font-semibold text-gray-700">{spot.ctr.toFixed(1)}%</p>
                 </div>
               </div>
             </div>
@@ -300,23 +300,23 @@ export default function PageDeepDiveReport() {
 
       {/* ---- Segments Table ---- */}
       <div className="rounded-2xl border border-gray-100 p-5">
-        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-4">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4">
           Segments
         </p>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-3">
+                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-3">
                   Segment
                 </th>
-                <th className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-3 text-right">
+                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-3 text-right">
                   Visitors
                 </th>
-                <th className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-3 text-right">
+                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-3 text-right">
                   Conv Rate
                 </th>
-                <th className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-2 text-right">
+                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2 text-right">
                   Engagement Score
                 </th>
               </tr>
@@ -327,16 +327,16 @@ export default function PageDeepDiveReport() {
                   key={seg.name}
                   className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
                 >
-                  <td className="py-2.5 pr-3 text-[11px] font-medium text-gray-700">
+                  <td className="py-2.5 pr-3 text-sm font-medium text-gray-700">
                     {seg.name}
                   </td>
-                  <td className="py-2.5 pr-3 text-[11px] text-gray-700 text-right">
+                  <td className="py-2.5 pr-3 text-sm text-gray-700 text-right">
                     {seg.visitors.toLocaleString()}
                   </td>
-                  <td className="py-2.5 pr-3 text-[11px] text-gray-700 text-right">
+                  <td className="py-2.5 pr-3 text-sm text-gray-700 text-right">
                     {seg.convRate.toFixed(1)}%
                   </td>
-                  <td className="py-2.5 text-[11px] text-gray-700 text-right">
+                  <td className="py-2.5 text-sm text-gray-700 text-right">
                     {seg.engagementScore}
                   </td>
                 </tr>
@@ -348,26 +348,26 @@ export default function PageDeepDiveReport() {
 
       {/* ---- Creatives Table ---- */}
       <div className="rounded-2xl border border-gray-100 p-5">
-        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-4">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4">
           Creatives
         </p>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-3">
+                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-3">
                   Creative
                 </th>
-                <th className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-3">
+                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-3">
                   Type
                 </th>
-                <th className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-3 text-right">
+                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-3 text-right">
                   Impressions
                 </th>
-                <th className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-3 text-right">
+                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-3 text-right">
                   CTR
                 </th>
-                <th className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-2 text-right">
+                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2 text-right">
                   Status
                 </th>
               </tr>
@@ -378,19 +378,19 @@ export default function PageDeepDiveReport() {
                   key={cr.name}
                   className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
                 >
-                  <td className="py-2.5 pr-3 text-[11px] font-medium text-gray-700">
+                  <td className="py-2.5 pr-3 text-sm font-medium text-gray-700">
                     {cr.name}
                   </td>
-                  <td className="py-2.5 pr-3 text-[11px] text-gray-700">{cr.type}</td>
-                  <td className="py-2.5 pr-3 text-[11px] text-gray-700 text-right">
+                  <td className="py-2.5 pr-3 text-sm text-gray-700">{cr.type}</td>
+                  <td className="py-2.5 pr-3 text-sm text-gray-700 text-right">
                     {cr.impressions.toLocaleString()}
                   </td>
-                  <td className="py-2.5 pr-3 text-[11px] text-gray-700 text-right">
+                  <td className="py-2.5 pr-3 text-sm text-gray-700 text-right">
                     {cr.ctr > 0 ? `${cr.ctr.toFixed(1)}%` : '--'}
                   </td>
                   <td className="py-2.5 text-right">
                     <span
-                      className={`inline-flex px-2 py-0.5 text-[10px] font-medium rounded-full ${statusStyles[cr.status]}`}
+                      className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${statusStyles[cr.status]}`}
                     >
                       {cr.status}
                     </span>

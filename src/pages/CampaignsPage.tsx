@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { BarChart3 } from 'lucide-react';
 import { campaignConfigStorage } from '../services/campaignConfigStorage';
 import { useCampaignConfigStore } from '../stores/campaignConfigStore';
+import { Tag } from '@/design-system';
 import type { CampaignConfig, ConfigStatus } from '../types/campaignConfig';
+import type { TagProps } from '@/design-system';
 
-const statusConfig: Record<ConfigStatus, { label: string; bg: string; text: string }> = {
-  draft: { label: 'Draft', bg: 'bg-yellow-100', text: 'text-yellow-800' },
-  ready: { label: 'Ready', bg: 'bg-green-100', text: 'text-green-700' },
-  launched: { label: 'Launched', bg: 'bg-blue-100', text: 'text-blue-700' },
+const statusConfig: Record<ConfigStatus, { label: string; variant: TagProps['variant'] }> = {
+  draft: { label: 'Draft', variant: 'warning' },
+  ready: { label: 'Ready', variant: 'success' },
+  launched: { label: 'Launched', variant: 'primary' },
 };
 
 function formatDate(iso: string): string {
@@ -105,9 +107,9 @@ export default function CampaignsPage() {
                             <span className="text-base font-medium text-gray-900">
                               {campaign.setup.name || 'Untitled Campaign'}
                             </span>
-                            <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${status.bg} ${status.text}`}>
+                            <Tag variant={status.variant} style={{ fontSize: '12px' }}>
                               {status.label}
-                            </span>
+                            </Tag>
                           </div>
                           <p className="text-sm text-gray-500 mb-3">
                             {campaign.setup.objective || 'No objective set'}
@@ -115,12 +117,17 @@ export default function CampaignsPage() {
 
                           {/* Audience tag */}
                           <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-50 text-purple-700 text-xs font-medium rounded-md">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                              </svg>
-                              {selectedSegments.length} segment{selectedSegments.length !== 1 ? 's' : ''}
-                            </span>
+                            <Tag
+                              variant="neutral"
+                              style={{ fontSize: '12px' }}
+                              icon={
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                              }
+                            >
+                              {`${selectedSegments.length} segment${selectedSegments.length !== 1 ? 's' : ''}`}
+                            </Tag>
                           </div>
                         </div>
 

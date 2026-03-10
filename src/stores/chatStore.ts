@@ -2388,8 +2388,9 @@ ${enrichedContent}`;
       });
     }
 
-    // Always reset workflow state so the editor never stays stuck in loading
+    // Always reset workflow state and AI edit loading so the editor never stays stuck
     useBriefEditorStore.getState().setWorkflowState('editing');
+    useBriefEditorStore.getState().setAIEditLoading(false);
   },
 
   updateMessageMetadata: (messageId: string, updates: Partial<ChatMessageMetadata>) => {

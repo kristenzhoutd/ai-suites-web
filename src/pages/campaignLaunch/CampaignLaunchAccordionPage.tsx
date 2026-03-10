@@ -124,7 +124,7 @@ export default function CampaignLaunchAccordionPage() {
               <p className="text-sm text-[#464B55] max-w-sm">Use the chat to generate an ad configuration, or go back to approve a blueprint first.</p>
             </div>
           ) : (
-            <div className="px-8 py-6">
+            <div className="px-8 pt-3 pb-6">
               <LaunchToolbar state={state} />
 
               {activeTab !== 'meta' ? (

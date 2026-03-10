@@ -6,7 +6,7 @@ import { parseCampaignBrief } from '../services/briefParser';
 import type { BriefSectionKey, SegmentMessages, CampaignMessage, RecommendedAudience, SpotCreative } from '../types/brief';
 import { loadBrandGuidelines } from '../utils/brandGuidelinesStorage';
 import { useSettingsStore } from '../stores/settingsStore';
-import { Button, TextField, TextArea } from '@/design-system';
+import { Button, TextField, TextArea, Checkbox, Tag } from '@/design-system';
 import SegmentPicker, { type PickerSegment } from './SegmentPicker';
 import ChipInput from './ChipInput';
 import AutosaveIndicator from './AutosaveIndicator';
@@ -339,14 +339,9 @@ export default function CampaignBriefEditor({ onCreateCampaign, onDelete }: Camp
     return activeBrief.sections[sectionKey].userEditedFields?.includes(field) ?? false;
   };
 
-  const renderFieldLabel = (label: string, sectionKey: BriefSectionKey, field: string) => (
-    <div className="flex items-center gap-1.5 mb-1">
-      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</label>
-      {isUserEdited(sectionKey, field) ? (
-        <span className="w-1.5 h-1.5 rounded-full bg-blue-400" title="User edited" />
-      ) : (
-        <span className="w-1.5 h-1.5 rounded-full bg-amber-300" title="AI inferred" />
-      )}
+  const renderFieldLabel = (label: string, _sectionKey: BriefSectionKey, _field: string) => (
+    <div className="flex items-center gap-1.5 mb-2">
+      <label className="text-sm font-normal text-[var(--text-default,#0a0a0a)]">{label}</label>
     </div>
   );
 
@@ -571,13 +566,51 @@ export default function CampaignBriefEditor({ onCreateCampaign, onDelete }: Camp
     switch (sectionKey) {
       case 'overview':
         return (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {renderTextInput('overview', 'campaignName', 'Campaign Name', s.overview.campaignName)}
             {renderTextArea('overview', 'objective', 'Objective', s.overview.objective)}
             {renderTextInput('overview', 'businessGoal', 'Business Goal', s.overview.businessGoal)}
-            <div className="grid grid-cols-2 gap-3">
-              {renderTextInput('overview', 'timelineStart', 'Start Date', s.overview.timelineStart, 'YYYY-MM-DD')}
-              {renderTextInput('overview', 'timelineEnd', 'End Date', s.overview.timelineEnd, 'YYYY-MM-DD')}
+            <div className="grid grid-cols-2 gap-4">
+              <SelectableElement
+                refId="brief.overview.timelineStart"
+                refType="text-field"
+                path={['Campaign Brief', 'Campaign Overview', 'Start Date']}
+                label="Start Date"
+                currentValue={s.overview.timelineStart}
+                context={{ domain: 'brief-editor', sectionKey: 'overview' }}
+              >
+                <div>
+                  {renderFieldLabel('Start Date', 'overview', 'timelineStart')}
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={s.overview.timelineStart}
+                      onChange={(e) => updateSection('overview', { timelineStart: e.target.value }, 'timelineStart')}
+                      className="w-full h-10 px-3 text-sm border border-[var(--border-default,#e6e6e7)] rounded-lg bg-white text-[var(--text-default,#020713)] focus:outline-none focus:ring-2 focus:ring-[var(--border-focus,rgba(54,97,232,0.4))]"
+                    />
+                  </div>
+                </div>
+              </SelectableElement>
+              <SelectableElement
+                refId="brief.overview.timelineEnd"
+                refType="text-field"
+                path={['Campaign Brief', 'Campaign Overview', 'End Date']}
+                label="End Date"
+                currentValue={s.overview.timelineEnd}
+                context={{ domain: 'brief-editor', sectionKey: 'overview' }}
+              >
+                <div>
+                  {renderFieldLabel('End Date', 'overview', 'timelineEnd')}
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={s.overview.timelineEnd}
+                      onChange={(e) => updateSection('overview', { timelineEnd: e.target.value }, 'timelineEnd')}
+                      className="w-full h-10 px-3 text-sm border border-[var(--border-default,#e6e6e7)] rounded-lg bg-white text-[var(--text-default,#020713)] focus:outline-none focus:ring-2 focus:ring-[var(--border-focus,rgba(54,97,232,0.4))]"
+                    />
+                  </div>
+                </div>
+              </SelectableElement>
             </div>
           </div>
         );
@@ -607,7 +640,7 @@ export default function CampaignBriefEditor({ onCreateCampaign, onDelete }: Camp
                 )}
               </div>
               {(s.audience.recommendedAudiences?.length > 0) && (
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="border border-[var(--border-default,#e6e6e7)] rounded-lg overflow-hidden">
                   {(s.audience.recommendedAudiences || []).map((ra: RecommendedAudience, idx: number) => (
                     <SelectableElement
                       key={ra.name}
@@ -619,44 +652,43 @@ export default function CampaignBriefEditor({ onCreateCampaign, onDelete }: Camp
                       context={{ domain: 'brief-editor', sectionKey: 'audience' }}
                     >
                     <div
-                      className={`flex items-start gap-3 p-3 ${idx > 0 ? 'border-t border-gray-100' : ''} ${
-                        ra.status === 'new' ? 'border-l-2 border-l-amber-300' : 'border-l-2 border-l-emerald-400'
+                      className={`flex items-center gap-[10px] border border-[var(--border-default,#e6e6e7)] ${
+                        idx > 0 ? '' : ''
                       }`}
                     >
+                      {/* Selection indicator bar */}
+                      <div
+                        className={`w-2 h-[80px] flex-shrink-0 ${
+                          ra.isSelected ? 'bg-[var(--neutral-2,#e6e6e7)]' : 'bg-transparent'
+                        }`}
+                      />
+
                       {/* Checkbox */}
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={ra.isSelected}
                         onChange={() => handleToggleAudience(idx)}
-                        className="mt-0.5 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
 
                       {/* Name + description */}
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 flex flex-col gap-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-gray-900">{ra.name}</span>
-                          {ra.status === 'existing' ? (
-                            <span className="inline-flex px-1.5 py-0.5 text-[10px] font-medium bg-emerald-100 text-emerald-700 rounded">
-                              Existing
-                            </span>
-                          ) : (
-                            <span className="inline-flex px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-700 rounded">
-                              New
-                            </span>
-                          )}
+                          <span className="text-sm font-medium text-[#101828] tracking-[0.4px]">{ra.name}</span>
+                          <Tag variant="success" style={{ fontSize: '12px', backgroundColor: '#e7f7f1', color: '#0a6a47', borderRadius: '6px' }}>
+                            {ra.status === 'existing' ? 'Existing' : 'New'}
+                          </Tag>
                           {ra.estimatedSize && (
-                            <span className={`text-[11px] ${ra.status === 'existing' ? 'text-emerald-600 font-medium' : 'text-gray-400 italic'}`}>
+                            <span className="text-[11px] font-light text-[#99a1af] tracking-[0.4px]">
                               {ra.estimatedSize} profiles
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-500 mt-0.5">{ra.description}</p>
+                        <p className="text-xs font-light text-[#6a7282] tracking-[0.4px]">{ra.description}</p>
                       </div>
 
                       {/* Delete button */}
                       <button
                         onClick={() => handleRemoveAudience(idx)}
-                        className="mt-0.5 w-5 h-5 flex items-center justify-center rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
+                        className="w-5 h-5 flex items-center justify-center rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
                         title="Remove audience"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -694,9 +726,12 @@ export default function CampaignBriefEditor({ onCreateCampaign, onDelete }: Camp
                       fetchChildSegments(selectedParentSegmentId);
                     }
                   }}
-                  className="mt-2 text-xs font-medium text-blue-600 hover:text-blue-800"
+                  className="mt-2 flex items-center gap-2 h-9 px-3 bg-[#f4f4f5] rounded text-sm font-medium text-[var(--surface-button-primary,#020713)] hover:bg-[#ebebec] transition-colors"
                 >
-                  + Add Existing Segment
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v14m-7-7h14" />
+                  </svg>
+                  Add Existing Segment
                 </button>
               )}
             </div>
@@ -866,16 +901,14 @@ export default function CampaignBriefEditor({ onCreateCampaign, onDelete }: Camp
                 </span>
               </div>
             ) : (
-              <div className="flex items-center justify-between px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
-                  <span className="text-xs text-amber-800">No brand guidelines selected</span>
-                </div>
+              <div className="flex items-center gap-2 px-4 py-3 bg-[var(--surface-message-warning,#fef2db)] rounded-lg">
+                <svg className="w-4 h-4 text-[var(--icon-warning,#ca993d)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <span className="flex-1 text-sm text-[#1b202b]">No brand guidelines selected</span>
                 <a
                   href="/assets"
-                  className="text-xs font-medium text-amber-700 hover:text-amber-900 underline"
+                  className="text-xs font-medium text-[#bb4d00] underline tracking-[0.4px] flex-shrink-0"
                 >
                   Upload Guidelines
                 </a>
@@ -955,7 +988,7 @@ export default function CampaignBriefEditor({ onCreateCampaign, onDelete }: Camp
 
       case 'measurement':
         return (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {renderTextInput('measurement', 'primaryKpi', 'Primary KPI', s.measurement.primaryKpi)}
             {renderChipField('measurement', 'secondaryKpis', 'Secondary KPIs', s.measurement.secondaryKpis, 'Add KPI...')}
             {renderChipField('measurement', 'secondaryMetrics', 'Secondary Metrics', s.measurement.secondaryMetrics, 'Add metric...')}
@@ -1003,9 +1036,9 @@ export default function CampaignBriefEditor({ onCreateCampaign, onDelete }: Camp
           const isCollapsed = collapsedSections.has(key);
 
           return (
-            <div key={key} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div key={key} className="bg-white rounded-xl border border-[#e5e7eb] overflow-hidden p-6">
               {/* Section header */}
-              <div className="flex items-center justify-between px-5 py-3">
+              <div className="flex items-center justify-between px-5 h-[60px]">
                 <button
                   onClick={() => toggleCollapse(key)}
                   className="flex items-center gap-2 text-left min-w-0"
@@ -1017,8 +1050,8 @@ export default function CampaignBriefEditor({ onCreateCampaign, onDelete }: Camp
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                   <div className="min-w-0">
-                    <div className="text-sm font-medium text-gray-900">{title}</div>
-                    <div className="text-xs text-gray-400">{helper}</div>
+                    <div className="text-sm font-medium text-[#101828] tracking-[0.4px] leading-5">{title}</div>
+                    <div className="text-xs font-light text-[#99a1af] tracking-[0.4px] leading-4">{helper}</div>
                   </div>
                 </button>
 
@@ -1028,7 +1061,7 @@ export default function CampaignBriefEditor({ onCreateCampaign, onDelete }: Camp
                     onClick={() => toggleLock(key)}
                     className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${
                       section.locked
-                        ? 'bg-amber-50 text-amber-600'
+                        ? 'bg-[var(--primary-1,#e6ebfc)] text-[var(--primary-6,#0439e2)]'
                         : 'text-gray-300 hover:text-gray-500 hover:bg-gray-50'
                     }`}
                     title={section.locked ? 'Unlock section' : 'Lock section'}
@@ -1060,11 +1093,12 @@ export default function CampaignBriefEditor({ onCreateCampaign, onDelete }: Camp
 
               {/* Section body */}
               {!isCollapsed && (
-                <div className="px-5 pb-4">
+                <div className="py-4">
                   {section.locked && (
-                    <div className="mb-3 px-3 py-1.5 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-700 flex items-center gap-1.5">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    <div className="mb-3 px-4 py-3 bg-[var(--surface-message-info,#f2f5fe)] rounded-lg text-sm text-[#1b202b] flex items-center gap-2">
+                      <svg className="w-4 h-4 text-[var(--primary-6,#0439e2)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" strokeWidth={2} />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 16v-4m0-4h.01" />
                       </svg>
                       This section is locked. AI regeneration is disabled.
                     </div>

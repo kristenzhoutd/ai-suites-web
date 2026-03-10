@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, Fragment } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   DollarSign,
@@ -26,6 +26,7 @@ import {
   MessageSquare,
   Send,
   Bot,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   ExternalLink,
@@ -38,6 +39,8 @@ import {
   Trash2,
   FileText,
   Plus,
+  LayoutGrid,
+  Pin,
 } from 'lucide-react';
 import {
   BarChart,
@@ -59,13 +62,184 @@ import {
 } from 'recharts';
 import { useOptimizeStore } from '../../stores/optimizeStore';
 import { useOnboardingStore } from '../../stores/onboardingStore';
+import { useSettingsStore } from '../../stores/settingsStore';
+import { useProgramStore } from '../../stores/programStore';
+import { rolePersonalizationConfig, type TabId } from '../../config/rolePersonalization';
 import { usePlatformStore } from '../../stores/platformStore';
+import { Button } from '@/design-system';
+import CMODashboardView from '../campaigns/CMODashboardView';
 import type { AttachedFile } from '../../types/campaign';
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
+// ─── KPI Library Data ──────────────────────────────────────────────────────────
+
+const chartWidgetCategories = [
+  {
+    name: 'Cross Channel Orchestration',
+    widgets: [
+      { id: 'budget-allocation-shifts', name: 'Budget Allocation & Shifts', description: 'AI-optimized budget distribution and recommended reallocations', chart: 'bar' as const },
+      { id: 'spend-by-channel', name: 'Spend by Channel', description: 'Budget distribution across active channels with pie chart', chart: 'pie' as const },
+      { id: 'cpa-top-channels', name: 'CPA & Top Channels', description: 'Cost per acquisition and highest ROAS channels', chart: 'hbar' as const },
+      { id: 'channel-efficiency-table', name: 'Channel Efficiency', description: 'Comprehensive performance breakdown across all channels', chart: 'table' as const },
+    ],
+  },
+  {
+    name: 'Campaigns',
+    widgets: [
+      { id: 'performance-trend', name: 'Performance Trend', description: 'Campaign spend, conversions, or ROAS over time', chart: 'area' as const },
+      { id: 'type-status-breakdown', name: 'Type & Status Breakdown', description: 'Campaign distribution by type and current status', chart: 'bar' as const },
+      { id: 'top-performing', name: 'Top Performing Campaigns', description: 'Highest efficiency campaigns driving best ROAS', chart: 'cards' as const },
+      { id: 'bottom-performing', name: 'Bottom Performing', description: 'Underperforming campaigns — candidates for pausing', chart: 'cards' as const },
+    ],
+  },
+  {
+    name: 'Audience',
+    widgets: [
+      { id: 'roas-comparison-spend-revenue', name: 'Audience ROAS & Spend', description: 'ROAS comparison and spend vs revenue by segment', chart: 'bar' as const },
+      { id: 'audience-performance-cards', name: 'Audience Performance', description: 'Segment-level performance across campaigns and channels', chart: 'cards' as const },
+    ],
+  },
+  {
+    name: 'Creative',
+    widgets: [
+      { id: 'format-fatigue', name: 'Format Performance & Fatigue', description: 'ROAS by creative type and fatigue lifecycle tracking', chart: 'bar' as const },
+      { id: 'top-creatives', name: 'Top Performing Creatives', description: 'Best creatives ranked by ROAS with impressions and CTR', chart: 'cards' as const },
+      { id: 'bubble-chart', name: 'Creative Volume vs ROAS', description: 'Bubble chart showing volume, efficiency, and spend', chart: 'scatter' as const },
+      { id: 'scale-pause', name: 'Scale Winners & Pause/Refresh', description: 'Actionable creative recommendations', chart: 'cards' as const },
+    ],
+  },
+];
+
+function ChartThumbnail({ type }: { type: 'bar' | 'hbar' | 'area' | 'pie' | 'table' | 'cards' | 'scatter' }) {
+  return (
+    <div className="w-[72px] h-[56px] flex-shrink-0 bg-emerald-50/50 rounded-lg p-1 pt-2.5">
+      <div className="bg-white rounded px-1.5 py-1 shadow-[0_0.5px_1px_rgba(0,0,0,0.05)] h-full flex items-end">
+        {type === 'bar' && (
+          <svg viewBox="0 0 48 24" className="w-full h-[18px]">
+            <rect x="2" y="10" width="6" height="14" rx="1" fill="#3b82f6" opacity={0.7} />
+            <rect x="10" y="14" width="6" height="10" rx="1" fill="#93c5fd" opacity={0.7} />
+            <rect x="18" y="6" width="6" height="18" rx="1" fill="#3b82f6" opacity={0.7} />
+            <rect x="26" y="12" width="6" height="12" rx="1" fill="#93c5fd" opacity={0.7} />
+            <rect x="34" y="8" width="6" height="16" rx="1" fill="#3b82f6" opacity={0.7} />
+            <rect x="42" y="16" width="6" height="8" rx="1" fill="#93c5fd" opacity={0.7} />
+          </svg>
+        )}
+        {type === 'hbar' && (
+          <svg viewBox="0 0 48 24" className="w-full h-[18px]">
+            <rect x="0" y="1" width="40" height="4" rx="1" fill="#10b981" opacity={0.6} />
+            <rect x="0" y="7" width="32" height="4" rx="1" fill="#10b981" opacity={0.5} />
+            <rect x="0" y="13" width="24" height="4" rx="1" fill="#f59e0b" opacity={0.5} />
+            <rect x="0" y="19" width="16" height="4" rx="1" fill="#ef4444" opacity={0.5} />
+          </svg>
+        )}
+        {type === 'area' && (
+          <svg viewBox="0 0 48 24" className="w-full h-[18px]">
+            <defs>
+              <linearGradient id="thumb-area" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.2} />
+                <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <path d="M0 18L6 14L12 16L18 10L24 12L30 6L36 8L42 4L48 6L48 24L0 24Z" fill="url(#thumb-area)" />
+            <path d="M0 18L6 14L12 16L18 10L24 12L30 6L36 8L42 4L48 6" fill="none" stroke="#3b82f6" strokeWidth={1.5} strokeLinecap="round" />
+          </svg>
+        )}
+        {type === 'pie' && (
+          <svg viewBox="0 0 48 24" className="w-full h-[18px]">
+            <circle cx="24" cy="12" r="10" fill="none" stroke="#e5e7eb" strokeWidth={4} />
+            <circle cx="24" cy="12" r="10" fill="none" stroke="#3b82f6" strokeWidth={4} strokeDasharray="22 41" strokeDashoffset="0" />
+            <circle cx="24" cy="12" r="10" fill="none" stroke="#10b981" strokeWidth={4} strokeDasharray="12 51" strokeDashoffset="-22" />
+            <circle cx="24" cy="12" r="10" fill="none" stroke="#ec4899" strokeWidth={4} strokeDasharray="8 55" strokeDashoffset="-34" />
+          </svg>
+        )}
+        {type === 'table' && (
+          <svg viewBox="0 0 48 24" className="w-full h-[18px]">
+            <rect x="0" y="0" width="48" height="4" rx="0.5" fill="#f3f4f6" />
+            <rect x="0" y="6" width="48" height="0.5" fill="#e5e7eb" />
+            <rect x="0" y="9" width="48" height="0.5" fill="#e5e7eb" />
+            <rect x="0" y="12" width="48" height="0.5" fill="#e5e7eb" />
+            <rect x="0" y="15" width="48" height="0.5" fill="#e5e7eb" />
+            <rect x="0" y="18" width="48" height="0.5" fill="#e5e7eb" />
+            <rect x="1" y="1" width="8" height="2" rx="0.5" fill="#9ca3af" opacity={0.4} />
+            <rect x="14" y="1" width="8" height="2" rx="0.5" fill="#9ca3af" opacity={0.4} />
+            <rect x="27" y="1" width="8" height="2" rx="0.5" fill="#9ca3af" opacity={0.4} />
+            <rect x="40" y="1" width="6" height="2" rx="0.5" fill="#9ca3af" opacity={0.4} />
+          </svg>
+        )}
+        {type === 'cards' && (
+          <svg viewBox="0 0 48 24" className="w-full h-[18px]">
+            <rect x="0" y="0" width="14" height="22" rx="2" fill="#f9fafb" stroke="#e5e7eb" strokeWidth={0.5} />
+            <rect x="17" y="0" width="14" height="22" rx="2" fill="#f9fafb" stroke="#e5e7eb" strokeWidth={0.5} />
+            <rect x="34" y="0" width="14" height="22" rx="2" fill="#f9fafb" stroke="#e5e7eb" strokeWidth={0.5} />
+            <rect x="2" y="3" width="6" height="1.5" rx="0.5" fill="#9ca3af" opacity={0.5} />
+            <rect x="2" y="7" width="10" height="3" rx="0.5" fill="#374151" opacity={0.3} />
+            <rect x="19" y="3" width="6" height="1.5" rx="0.5" fill="#9ca3af" opacity={0.5} />
+            <rect x="19" y="7" width="10" height="3" rx="0.5" fill="#374151" opacity={0.3} />
+            <rect x="36" y="3" width="6" height="1.5" rx="0.5" fill="#9ca3af" opacity={0.5} />
+            <rect x="36" y="7" width="10" height="3" rx="0.5" fill="#374151" opacity={0.3} />
+          </svg>
+        )}
+        {type === 'scatter' && (
+          <svg viewBox="0 0 48 24" className="w-full h-[18px]">
+            <circle cx="8" cy="16" r="3" fill="#10b981" opacity={0.5} />
+            <circle cx="16" cy="8" r="4.5" fill="#10b981" opacity={0.5} />
+            <circle cx="26" cy="12" r="3.5" fill="#f59e0b" opacity={0.5} />
+            <circle cx="34" cy="6" r="2.5" fill="#10b981" opacity={0.5} />
+            <circle cx="40" cy="18" r="2" fill="#ef4444" opacity={0.5} />
+            <circle cx="20" cy="18" r="2" fill="#f59e0b" opacity={0.5} />
+          </svg>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const kpiLibraryCategories = [
+  {
+    name: 'Revenue & ROI',
+    kpis: [
+      { id: 'revenue', name: 'Revenue', description: 'Total revenue generated from ad-driven conversions', preview: { value: '$482,300', change: '+12.3%', up: true, spark: [320,340,360,380,430,460,482] } },
+      { id: 'roas', name: 'ROAS', description: 'Return on ad spend — revenue generated per dollar spent', preview: { value: '3.8x', change: '+15.3%', up: true, spark: [2.8,3.0,3.2,3.3,3.5,3.7,3.8] } },
+      { id: 'roi', name: 'ROI', description: 'Net profit as a percentage of total investment', preview: { value: '284%', change: '+8.6%', up: true, spark: [220,235,248,255,268,275,284] } },
+      { id: 'ltv', name: 'Customer LTV', description: 'Predicted lifetime value of acquired customers', preview: { value: '$1,240', change: '+5.2%', up: true, spark: [1080,1100,1140,1160,1190,1220,1240] } },
+      { id: 'aov', name: 'Avg Order Value', description: 'Average revenue per conversion event', preview: { value: '$86', change: '+3.1%', up: true, spark: [78,80,81,83,84,85,86] } },
+    ],
+  },
+  {
+    name: 'Cost & Efficiency',
+    kpis: [
+      { id: 'cpa', name: 'CPA', description: 'Cost per acquisition — average spend to drive one conversion', preview: { value: '$42', change: '-5.1%', up: true, spark: [52,48,46,45,44,43,42] } },
+      { id: 'cpc', name: 'CPC', description: 'Cost per click — average spend per ad click', preview: { value: '$1.82', change: '-3.2%', up: true, spark: [2.1,2.0,1.95,1.9,1.88,1.85,1.82] } },
+      { id: 'cpm', name: 'CPM', description: 'Cost per 1,000 impressions served', preview: { value: '$8.40', change: '-1.8%', up: true, spark: [9.2,9.0,8.8,8.7,8.6,8.5,8.4] } },
+      { id: 'spend', name: 'Total Spend', description: 'Total advertising expenditure across all channels', preview: { value: '$6,800', change: '+4.2%', up: true, spark: [5800,6000,6200,6400,6500,6700,6800] } },
+      { id: 'budget-util', name: 'Budget Utilization', description: 'Percentage of allocated budget that has been spent', preview: { value: '73%', change: '+6.0%', up: true, spark: [45,50,55,60,65,70,73] } },
+    ],
+  },
+  {
+    name: 'Engagement',
+    kpis: [
+      { id: 'ctr', name: 'CTR', description: 'Click-through rate — percentage of impressions that result in clicks', preview: { value: '2.4%', change: '+0.3%', up: true, spark: [1.9,2.0,2.1,2.2,2.2,2.3,2.4] } },
+      { id: 'impressions', name: 'Impressions', description: 'Total number of times ads were displayed', preview: { value: '5.2M', change: '+18.4%', up: true, spark: [3.8,4.0,4.2,4.5,4.8,5.0,5.2] } },
+      { id: 'clicks', name: 'Clicks', description: 'Total number of ad clicks across all campaigns', preview: { value: '124K', change: '+9.8%', up: true, spark: [95,100,105,110,115,120,124] } },
+      { id: 'reach', name: 'Reach', description: 'Unique users who saw your ads at least once', preview: { value: '3.1M', change: '+14.2%', up: true, spark: [2.2,2.4,2.6,2.7,2.9,3.0,3.1] } },
+      { id: 'frequency', name: 'Frequency', description: 'Average number of times each user saw your ad', preview: { value: '1.7x', change: '-2.1%', up: false, spark: [1.9,1.85,1.8,1.78,1.75,1.72,1.7] } },
+    ],
+  },
+  {
+    name: 'Conversion',
+    kpis: [
+      { id: 'conversions', name: 'Conversions', description: 'Total number of completed conversion events', preview: { value: '18,740', change: '+8.2%', up: true, spark: [14200,15100,16200,17100,17500,18200,18740] } },
+      { id: 'conv-rate', name: 'Conversion Rate', description: 'Percentage of clicks that result in conversions', preview: { value: '3.8%', change: '+0.4%', up: true, spark: [3.2,3.3,3.4,3.5,3.6,3.7,3.8] } },
+      { id: 'leads', name: 'Leads Generated', description: 'Number of new leads captured through ad campaigns', preview: { value: '2,840', change: '+11.5%', up: true, spark: [2100,2250,2400,2520,2650,2760,2840] } },
+      { id: 'cart-abandon', name: 'Cart Abandonment', description: 'Percentage of users who add to cart but don\'t purchase', preview: { value: '34%', change: '-2.8%', up: true, spark: [40,38,37,36,35,35,34] } },
+    ],
+  },
+];
+
 const mockKpiData = [
   {
+    id: 'revenue',
     label: 'Revenue',
     value: '$482,300',
     change: +12.4,
@@ -76,6 +250,7 @@ const mockKpiData = [
     ],
   },
   {
+    id: 'conversions',
     label: 'Conversions',
     value: '18,740',
     change: +8.2,
@@ -86,6 +261,7 @@ const mockKpiData = [
     ],
   },
   {
+    id: 'cpa',
     label: 'CPA',
     value: '$42',
     change: -5.1,
@@ -97,6 +273,7 @@ const mockKpiData = [
     ],
   },
   {
+    id: 'roas',
     label: 'ROAS',
     value: '3.8x',
     change: +15.3,
@@ -107,6 +284,7 @@ const mockKpiData = [
     ],
   },
   {
+    id: 'spend',
     label: 'Spend / Pacing',
     value: '$6,800',
     icon: Wallet,
@@ -157,24 +335,41 @@ const channelEfficiencyTableData = [
   { channel: 'LinkedIn', spend: '$5,000', revenue: '$8,500', roas: 1.7, cpa: 72, ctr: 0.8, convRate: 1.2, roasBar: 33 },
 ];
 
-const aiRecommendations = [
+const aiRecommendationsPool = [
   {
     title: 'Audience Expansion',
     description: 'Expand TikTok lookalike audiences to 3% from 1%. Data suggests broader targeting yields 18% lower CPA with minimal drop in conversion quality.',
     impact: 'Est. +$12,400 revenue',
     icon: '👥',
+    goalTag: 'Audience targeting',
   },
   {
     title: 'Creative Refresh',
     description: 'YouTube ad creatives show fatigue signals. Click-through rate dropped 23% over 14 days. Recommend refreshing top 3 creatives.',
     impact: 'Est. +8% CTR recovery',
     icon: '🎨',
+    goalTag: 'Creative performance',
   },
   {
     title: 'Dayparting Strategy',
     description: 'Meta campaigns perform 34% better between 6-9 PM. Shift 40% of budget to evening hours for improved ROAS.',
     impact: 'Est. +0.6 ROAS lift',
     icon: '⏰',
+    goalTag: 'Budget optimization',
+  },
+  {
+    title: 'Cross-Channel Attribution',
+    description: 'Users who see ads on both Meta and Google convert at 2.4x the rate of single-channel exposure. Consider coordinated frequency caps.',
+    impact: 'Est. +22% conversion lift',
+    icon: '🔗',
+    goalTag: 'Cross-channel insights',
+  },
+  {
+    title: 'Weekly Performance Report',
+    description: 'Auto-generate a weekly performance digest with channel-level ROAS, CPA trends, and budget pacing alerts sent to your inbox every Monday.',
+    impact: 'Save 3+ hrs/week on reporting',
+    icon: '📊',
+    goalTag: 'Reporting & analytics',
   },
 ];
 
@@ -740,6 +935,7 @@ const opportunities: Opportunity[] = [
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 interface KPICardProps {
+  id?: string;
   label: string;
   value: string;
   change?: number;
@@ -747,6 +943,28 @@ interface KPICardProps {
   invertColor?: boolean;
   pacing?: { spent: number; budget: number };
   sparkline?: { v: number }[];
+}
+
+function SectionHeader({ title, subtitle, onAskAI }: { title: string; subtitle?: string; onAskAI?: () => void }) {
+  return (
+    <div className="mb-5">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+        {onAskAI && (
+          <button
+            onClick={() => onAskAI()}
+            className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer"
+            title="Deep dive with AI"
+          >
+            <svg className="w-3.5 h-3.5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+              <path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6Z" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        )}
+      </div>
+      {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
+    </div>
+  );
 }
 
 function KPICardComponent({
@@ -801,7 +1019,7 @@ function KPICardComponent({
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={sparkline} margin={{ top: 2, right: 0, left: 0, bottom: 2 }}>
                 <defs>
-                  <linearGradient id={`sparkGrad-${label}`} x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id={`sparkGrad-${label.replace(/\s+/g, '-')}`} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={sparkColor} stopOpacity={0.3} />
                     <stop offset="100%" stopColor={sparkColor} stopOpacity={0} />
                   </linearGradient>
@@ -811,7 +1029,7 @@ function KPICardComponent({
                   dataKey="v"
                   stroke={sparkColor}
                   strokeWidth={1.5}
-                  fill={`url(#sparkGrad-${label})`}
+                  fill={`url(#sparkGrad-${label.replace(/\s+/g, '-')})`}
                   dot={false}
                 />
               </AreaChart>
@@ -907,21 +1125,30 @@ interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
-  onboardingStep?: 'industry' | 'role' | 'goals' | 'keyMetrics';
+  onboardingStep?: 'name' | 'industry' | 'role' | 'goals' | 'keyMetrics';
   options?: string[];
   multiSelect?: boolean;
+  textInput?: boolean;
 }
 
 const ONBOARDING_STEPS: {
-  key: 'industry' | 'role' | 'goals' | 'keyMetrics';
+  key: 'name' | 'industry' | 'role' | 'goals' | 'keyMetrics';
   question: string;
   options: string[];
   multi: boolean;
+  textInput?: boolean;
 }[] = [
   {
+    key: 'name',
+    question: "Let's personalize your experience! What's your name?",
+    options: [],
+    multi: false,
+    textInput: true,
+  },
+  {
     key: 'industry',
-    question: "Let's personalize your experience! What industry are you in?",
-    options: ['E-commerce', 'SaaS / B2B', 'Finance', 'Healthcare', 'Retail', 'Media & Entertainment', 'Other'],
+    question: "Nice to meet you! What industry are you in?",
+    options: ['E-commerce', 'SaaS / B2B', 'Finance', 'Healthcare', 'Travel & Hospitality', 'Retail', 'Media & Entertainment', 'Other'],
     multi: false,
   },
   {
@@ -950,6 +1177,65 @@ const chatSuggestions = [
   'Why is my CPA increasing on Meta?',
   'Recommend budget changes for this week',
 ];
+
+const chartContextData: Record<string, { message: string; suggestions: string[] }> = {
+  'budget-allocation-shifts': {
+    message: "I see you're looking at **Budget Allocation**. Meta currently holds the largest share at $32K, but TikTok is showing stronger ROAS efficiency. There are 4 recommended shifts that could improve overall performance.",
+    suggestions: ['Why shift budget to TikTok?', 'What\'s the optimal channel split?', 'Show me the projected impact of these shifts'],
+  },
+  'spend-by-channel': {
+    message: "Here's your **Spend by Channel** breakdown. Your spend is distributed across 6 channels with Meta and Google Search taking the majority. Let me know if you'd like to explore reallocation opportunities.",
+    suggestions: ['Which channel has the best ROI?', 'Am I overspending on any channel?', 'Compare channel efficiency trends'],
+  },
+  'cpa-top-channels': {
+    message: "Looking at your **Channel Performance Metrics** — TikTok leads with the lowest CPA at $28, while LinkedIn has the highest at $72. Your top 3 channels are all trending upward.",
+    suggestions: ['Why is LinkedIn CPA so high?', 'Should I pause underperforming channels?', 'How can I lower CPA on Google?'],
+  },
+  'channel-efficiency-table': {
+    message: "Here's the full **Channel Efficiency** breakdown. TikTok leads in ROAS at 5.2x while LinkedIn trails at 1.7x. I can help identify optimization opportunities across channels.",
+    suggestions: ['Rank channels by efficiency', 'Which channels should I scale?', 'What\'s driving the ROAS gap?'],
+  },
+  'performance-trend': {
+    message: "Your **Performance Trend** shows campaign metrics over time. I can help you identify patterns, anomalies, or inflection points in your campaign data.",
+    suggestions: ['What caused the recent spike?', 'Are we on track for monthly goals?', 'Compare this month vs last'],
+  },
+  'type-status-breakdown': {
+    message: "Here's your **Campaign Type & Status** overview. I can help you understand how different campaign types are performing relative to each other.",
+    suggestions: ['Which campaign type performs best?', 'How many campaigns need attention?', 'Show conversion campaigns breakdown'],
+  },
+  'top-performing': {
+    message: "Your **Top Performing Campaigns** are driving strong results. The leading campaign has a 6.8x ROAS with lookalike audiences on Meta. Want to explore scaling opportunities?",
+    suggestions: ['How do I scale the top campaign?', 'What makes these campaigns successful?', 'Can I replicate this for other segments?'],
+  },
+  'bottom-performing': {
+    message: "These **Bottom Performing Campaigns** are candidates for pausing or restructuring. I can help identify what's going wrong and suggest fixes.",
+    suggestions: ['Why are these underperforming?', 'Should I pause or optimize them?', 'What budget should I reallocate?'],
+  },
+  'roas-comparison-spend-revenue': {
+    message: "Your **Audience ROAS & Spend** analysis shows significant variation across segments. Some audiences are delivering strong returns while others may need targeting adjustments.",
+    suggestions: ['Which audience segment is most profitable?', 'Should I narrow my targeting?', 'Compare audience performance over time'],
+  },
+  'audience-performance-cards': {
+    message: "Here's your **Audience Performance** across all segments. I can help you identify which demographics and interests are driving the best results.",
+    suggestions: ['Which audience should I expand?', 'Are there untapped segments?', 'How do lookalikes compare to interest-based?'],
+  },
+  'format-fatigue': {
+    message: "Your **Creative Format Performance** shows varying ROAS across formats, and the **Fatigue Tracker** highlights creatives that may need refreshing. 2 creatives are showing fatigue signals.",
+    suggestions: ['Which creatives need refreshing?', 'What format works best for conversions?', 'How often should I rotate creatives?'],
+  },
+  'top-creatives': {
+    message: "Your **Top Performing Creatives** are ranked by ROAS. I can help you understand what's making them effective and how to apply those learnings.",
+    suggestions: ['What makes the top creative effective?', 'Should I create variations of winners?', 'Compare creative performance by channel'],
+  },
+  'bubble-chart': {
+    message: "The **Creative Volume vs ROAS** chart shows how each creative balances reach and efficiency. Larger bubbles indicate higher spend allocation.",
+    suggestions: ['Which creative has the best reach-to-ROAS ratio?', 'Are high-spend creatives efficient?', 'Identify underperforming high-spend creatives'],
+  },
+  'scale-pause': {
+    message: "Here are your **Scale Winners & Pause/Refresh** recommendations. I've identified creatives worth scaling up and ones that should be paused or refreshed.",
+    suggestions: ['Why should I scale these winners?', 'What should replace the paused creatives?', 'Estimated impact of these changes?'],
+  },
+};
 
 function generateCampaignSummary(store: ReturnType<typeof useOptimizeStore.getState>): string {
   const { campaigns, summary } = store;
@@ -1056,7 +1342,7 @@ function generateBudgetAnswer(store: ReturnType<typeof useOptimizeStore.getState
   return lines.join('\n');
 }
 
-function UnifiedChatPanel({ isOpen, onClose, startOnboarding }: { isOpen: boolean; onClose: () => void; startOnboarding?: boolean }) {
+function UnifiedChatPanel({ isOpen, onClose, startOnboarding, pinnedKpis, setPinnedKpis, pinnedWidgets, setPinnedWidgets, chartContext, onClearChartContext }: { isOpen: boolean; onClose: () => void; startOnboarding?: boolean; pinnedKpis: Set<string>; setPinnedKpis: React.Dispatch<React.SetStateAction<Set<string>>>; pinnedWidgets: Set<string>; setPinnedWidgets: React.Dispatch<React.SetStateAction<Set<string>>>; chartContext?: string | null; onClearChartContext?: () => void }) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
@@ -1068,6 +1354,7 @@ function UnifiedChatPanel({ isOpen, onClose, startOnboarding }: { isOpen: boolea
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
+  const [panelTab, setPanelTab] = useState<'chat' | 'widget-library'>('chat');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1091,6 +1378,24 @@ function UnifiedChatPanel({ isOpen, onClose, startOnboarding }: { isOpen: boolea
     }
   }, [isOpen, onboardingActive]);
 
+  // Show contextual message when a chart sparkle is clicked
+  useEffect(() => {
+    if (chartContext && isOpen && !onboardingActive) {
+      const ctx = chartContextData[chartContext];
+      if (ctx) {
+        setPanelTab('chat');
+        setMessages([
+          {
+            id: `chart-ctx-${chartContext}`,
+            role: 'assistant',
+            content: ctx.message,
+            timestamp: new Date(),
+          },
+        ]);
+      }
+    }
+  }, [chartContext, isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Start onboarding when triggered
   useEffect(() => {
     if (startOnboarding && isOpen) {
@@ -1108,6 +1413,7 @@ function UnifiedChatPanel({ isOpen, onClose, startOnboarding }: { isOpen: boolea
           onboardingStep: step.key,
           options: step.options,
           multiSelect: step.multi,
+          textInput: step.textInput,
         },
       ]);
     }
@@ -1126,6 +1432,7 @@ function UnifiedChatPanel({ isOpen, onClose, startOnboarding }: { isOpen: boolea
         onboardingStep: step.key,
         options: step.options,
         multiSelect: step.multi,
+        textInput: step.textInput,
       };
       setMessages((prev) => [...prev, nextMsg]);
     } else {
@@ -1232,7 +1539,25 @@ function UnifiedChatPanel({ isOpen, onClose, startOnboarding }: { isOpen: boolea
   };
 
   const handleSend = (text?: string) => {
-    if (onboardingActive) return;
+    // Handle text input onboarding steps (e.g. name)
+    if (onboardingActive) {
+      const step = ONBOARDING_STEPS[onboardingStepIndex];
+      if (step?.textInput) {
+        const value = (text || input).trim();
+        if (!value) return;
+        const userMsg: ChatMessage = {
+          id: `user-onboard-${Date.now()}`,
+          role: 'user',
+          content: value,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, userMsg]);
+        setInput('');
+        updateProfile({ [step.key]: value });
+        advanceOnboarding(onboardingStepIndex + 1);
+      }
+      return;
+    }
     let messageText = text || input.trim();
 
     // Append extracted PDF text
@@ -1317,16 +1642,170 @@ function UnifiedChatPanel({ isOpen, onClose, startOnboarding }: { isOpen: boolea
       {isOpen && (
         <>
           {/* Header */}
-          <div className="shrink-0 flex items-center justify-end px-4 pt-3">
-            <button
-              onClick={onClose}
-              className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full cursor-pointer transition-colors"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-            </button>
+          <div className="shrink-0 px-4 pt-3">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
+                <button
+                  onClick={() => setPanelTab('chat')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                    panelTab === 'chat' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <MessageSquare className="w-3 h-3" />
+                  Chat
+                </button>
+                <button
+                  onClick={() => setPanelTab('widget-library')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                    panelTab === 'widget-library' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <LayoutGrid className="w-3 h-3" />
+                  Widget Library
+                </button>
+              </div>
+              <button
+                onClick={onClose}
+                className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full cursor-pointer transition-colors"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
 
-          {/* Messages */}
+          {/* Widget Library */}
+          {panelTab === 'widget-library' && (
+            <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-1">Widget Library</h3>
+                <p className="text-xs text-gray-400">Pin KPI cards and charts to customize your dashboard.</p>
+              </div>
+
+              {/* KPI Cards section */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-1 h-4 rounded-full bg-blue-400" />
+                  <h4 className="text-xs font-semibold text-gray-900">KPI Cards</h4>
+                </div>
+                {kpiLibraryCategories.map((category) => (
+                  <div key={category.name} className="mb-3">
+                    <h4 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">{category.name}</h4>
+                    <div className="space-y-1.5">
+                      {category.kpis.map((kpi) => {
+                        const isPinned = pinnedKpis.has(kpi.id);
+                        const p = kpi.preview;
+                        const sparkData = p.spark.map((v) => ({ v }));
+                        const sparkColor = p.up ? '#10b981' : '#ef4444';
+                        return (
+                          <div
+                            key={kpi.id}
+                            className={`flex items-center gap-3 p-2.5 rounded-xl border transition-colors ${
+                              isPinned ? 'border-blue-200 bg-blue-50/30' : 'border-gray-100 hover:border-gray-200'
+                            }`}
+                          >
+                            {/* Mini card thumbnail */}
+                            <div className="w-[72px] h-[56px] flex-shrink-0 bg-blue-50/50 rounded-lg p-1 pt-2.5">
+                              <div className="bg-white rounded px-1.5 py-1 shadow-[0_0.5px_1px_rgba(0,0,0,0.05)]">
+                                <div className="text-[4px] text-gray-300 uppercase tracking-wider leading-none mb-px">{kpi.name}</div>
+                                <div className="text-[7px] font-bold text-gray-800 leading-none mb-px">{p.value}</div>
+                                <div className="flex items-center gap-px">
+                                  <svg className="w-[5px] h-[5px]" viewBox="0 0 12 12" fill="none" stroke={p.up ? '#10b981' : '#ef4444'} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                                    <path d={p.up ? 'M1 8L4 5L7 7L11 3' : 'M1 4L4 7L7 5L11 9'} />
+                                  </svg>
+                                  <span className={`text-[3.5px] ${p.up ? 'text-emerald-400' : 'text-red-400'}`}>{p.change} vs last period</span>
+                                </div>
+                              </div>
+                            </div>
+                            {/* Name + description */}
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-semibold text-gray-900">{kpi.name}</div>
+                              <div className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">{kpi.description}</div>
+                            </div>
+                            {/* Pin button */}
+                            <button
+                              onClick={() => {
+                                setPinnedKpis((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(kpi.id)) next.delete(kpi.id);
+                                  else next.add(kpi.id);
+                                  return next;
+                                });
+                              }}
+                              className={`w-6 h-6 flex items-center justify-center rounded-md flex-shrink-0 cursor-pointer transition-colors ${
+                                isPinned
+                                  ? 'bg-blue-100 text-blue-600 hover:bg-blue-200'
+                                  : 'text-gray-300 hover:text-gray-500 hover:bg-gray-100'
+                              }`}
+                              title={isPinned ? 'Unpin from dashboard' : 'Pin to dashboard'}
+                            >
+                              <Pin className={`w-3 h-3 ${isPinned ? 'fill-current' : ''}`} />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Chart Widgets section */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-1 h-4 rounded-full bg-emerald-400" />
+                  <h4 className="text-xs font-semibold text-gray-900">Charts</h4>
+                </div>
+                {chartWidgetCategories.map((category) => (
+                  <div key={category.name} className="mb-3">
+                    <h4 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">{category.name}</h4>
+                    <div className="space-y-1.5">
+                      {category.widgets.map((widget) => {
+                        const isPinned = pinnedWidgets.has(widget.id);
+                        return (
+                          <div
+                            key={widget.id}
+                            className={`flex items-center gap-3 p-2.5 rounded-xl border transition-colors ${
+                              isPinned ? 'border-emerald-200 bg-emerald-50/30' : 'border-gray-100 hover:border-gray-200'
+                            }`}
+                          >
+                            <ChartThumbnail type={widget.chart} />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-semibold text-gray-900">{widget.name}</div>
+                              <div className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">{widget.description}</div>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setPinnedWidgets((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(widget.id)) next.delete(widget.id);
+                                  else next.add(widget.id);
+                                  return next;
+                                });
+                              }}
+                              className={`w-6 h-6 flex items-center justify-center rounded-md flex-shrink-0 mt-0.5 cursor-pointer transition-colors ${
+                                isPinned
+                                  ? 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200'
+                                  : 'text-gray-300 hover:text-gray-500 hover:bg-gray-100'
+                              }`}
+                              title={isPinned ? 'Unpin from dashboard' : 'Pin to dashboard'}
+                            >
+                              <Pin className={`w-3 h-3 ${isPinned ? 'fill-current' : ''}`} />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="text-[10px] text-gray-300 text-center pt-2">
+                {pinnedKpis.size} KPI{pinnedKpis.size !== 1 ? 's' : ''} · {pinnedWidgets.size} chart{pinnedWidgets.size !== 1 ? 's' : ''} pinned
+              </div>
+            </div>
+          )}
+
+          {/* Chat Messages */}
+          {panelTab === 'chat' && (<>
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
             {messages.map((msg) => (
               <div key={msg.id}>
@@ -1348,7 +1827,7 @@ function UnifiedChatPanel({ isOpen, onClose, startOnboarding }: { isOpen: boolea
                   </div>
                 </div>
                 {/* Option chips for active onboarding question */}
-                {msg.options && msg.id === lastOnboardingMsgId && (
+                {msg.options && msg.options.length > 0 && msg.id === lastOnboardingMsgId && (
                   <div className="mt-2 ml-0">
                     <div className="flex flex-wrap gap-1.5">
                       {msg.options.map((option) => {
@@ -1403,10 +1882,13 @@ function UnifiedChatPanel({ isOpen, onClose, startOnboarding }: { isOpen: boolea
           {messages.length <= 1 && !onboardingActive && (
             <div className="shrink-0 px-5 pb-2">
               <div className="flex flex-wrap gap-1.5">
-                {chatSuggestions.map((suggestion) => (
+                {(chartContext && chartContextData[chartContext]
+                  ? chartContextData[chartContext].suggestions
+                  : chatSuggestions
+                ).map((suggestion) => (
                   <button
                     key={suggestion}
-                    onClick={() => handleSend(suggestion)}
+                    onClick={() => { handleSend(suggestion); onClearChartContext?.(); }}
                     className="text-[11px] text-blue-600 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer border-none font-medium"
                   >
                     {suggestion}
@@ -1419,9 +1901,33 @@ function UnifiedChatPanel({ isOpen, onClose, startOnboarding }: { isOpen: boolea
           {/* Input */}
           <div className="shrink-0 p-4">
             {onboardingActive ? (
-              <div className="text-center text-[12px] text-gray-400 py-2">
-                Select an option above to continue
-              </div>
+              ONBOARDING_STEPS[onboardingStepIndex]?.textInput ? (
+                <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                    placeholder="Type your name..."
+                    className="w-full px-4 py-3 text-sm text-gray-700 placeholder-gray-400 border-none outline-none bg-transparent"
+                    autoFocus
+                  />
+                  <div className="px-3 py-2 flex items-center justify-end">
+                    <button
+                      onClick={() => handleSend()}
+                      disabled={!input.trim()}
+                      className="w-8 h-8 flex items-center justify-center bg-black text-white rounded-full hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors border-none"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center text-[12px] text-gray-400 py-2">
+                  Select an option above to continue
+                </div>
+              )
             ) : (
               <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                 {/* Attached Files */}
@@ -1480,6 +1986,7 @@ function UnifiedChatPanel({ isOpen, onClose, startOnboarding }: { isOpen: boolea
               </div>
             )}
           </div>
+          </>)}
         </>
       )}
     </div>
@@ -2040,17 +2547,40 @@ function CampaignDetailDrawer({
 
 export default function UnifiedViewDashboard() {
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<'orchestration' | 'campaigns' | 'audience' | 'creative'>('orchestration');
+
+  const { campaigns, summary, isLoading, error, lastFetchedAt, fetchCampaigns } = useOptimizeStore();
+  const { dashboardView, setDashboardView } = useSettingsStore();
+  const { programs } = useProgramStore();
+  const onboardingCompleted = useOnboardingStore((s) => s.completed);
+  const onboardingProfile = useOnboardingStore((s) => s.profile);
+  const resetOnboardingStore = useOnboardingStore((s) => s.resetOnboarding);
+  const hasRealData = campaigns.length > 0 && campaigns.some((c) => (c.spent || 0) > 0 || (c.metrics?.conversions || 0) > 0);
+
+  // Derive role-based personalization config
+  const roleConfig = onboardingCompleted && onboardingProfile?.role
+    ? rolePersonalizationConfig[onboardingProfile.role] ?? null
+    : null;
+
+  const [activeTab, setActiveTab] = useState<TabId>(() => roleConfig?.defaultTab ?? 'orchestration');
   const [lastRefreshed, setLastRefreshed] = useState(new Date());
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignPerformance | null>(null);
   const [triggerOnboarding, setTriggerOnboarding] = useState(false);
   const [campaignTrendMetric, setCampaignTrendMetric] = useState<'spend' | 'conversions' | 'roas'>('spend');
+  const [pinnedKpis, setPinnedKpis] = useState<Set<string>>(new Set(['revenue', 'conversions', 'cpa', 'roas', 'spend']));
+  const [chartContext, setChartContext] = useState<string | null>(null);
 
-  const { campaigns, summary, isLoading, error, lastFetchedAt, fetchCampaigns } = useOptimizeStore();
-  const onboardingCompleted = useOnboardingStore((s) => s.completed);
-  const resetOnboardingStore = useOnboardingStore((s) => s.resetOnboarding);
-  const hasRealData = campaigns.length > 0 && campaigns.some((c) => (c.spent || 0) > 0 || (c.metrics?.conversions || 0) > 0);
+  const handleChartAskAI = (chartId?: string) => {
+    setChartContext(chartId ?? null);
+    setIsChatOpen(true);
+  };
+
+  const [pinnedWidgets, setPinnedWidgets] = useState<Set<string>>(new Set([
+    'budget-allocation-shifts', 'spend-by-channel', 'cpa-top-channels', 'channel-efficiency-table',
+    'performance-trend', 'type-status-breakdown', 'top-performing', 'bottom-performing',
+    'roas-comparison-spend-revenue', 'audience-performance-cards',
+    'format-fatigue', 'top-creatives', 'bubble-chart', 'scale-pause',
+  ]));
 
   const handlePersonalize = () => {
     if (onboardingCompleted) {
@@ -2063,6 +2593,13 @@ export default function UnifiedViewDashboard() {
       setTriggerOnboarding(true);
     }, 0);
   };
+
+  // When onboarding completes, switch to the role's default tab
+  useEffect(() => {
+    if (roleConfig?.defaultTab) {
+      setActiveTab(roleConfig.defaultTab);
+    }
+  }, [roleConfig?.defaultTab]);
 
   // Fetch campaigns on mount if not fetched recently (5 min cache)
   useEffect(() => {
@@ -2092,7 +2629,19 @@ export default function UnifiedViewDashboard() {
   };
 
   // Derive KPI data from real campaigns or fall back to mocks
+  // Prioritize KPI cards based on onboarding key metrics
   const kpiData: KPICardProps[] = useMemo(() => {
+    // CMO view: 4 executive-level KPI cards
+    if (dashboardView === 'cmo') {
+      return [
+        { id: 'revenue', label: 'Total Revenue', value: '$2.4M', change: +18, icon: DollarSign, sparkline: [{ v: 1.8 }, { v: 1.9 }, { v: 2.0 }, { v: 2.1 }, { v: 2.1 }, { v: 2.2 }, { v: 2.2 }, { v: 2.3 }, { v: 2.3 }, { v: 2.4 }] },
+        { id: 'roas', label: 'Overall ROAS', value: '4.2x', change: +12, icon: TrendingUp, sparkline: [{ v: 3.2 }, { v: 3.4 }, { v: 3.5 }, { v: 3.6 }, { v: 3.7 }, { v: 3.8 }, { v: 3.9 }, { v: 4.0 }, { v: 4.1 }, { v: 4.2 }] },
+        { id: 'impressions', label: 'Active Campaigns', value: `${campaigns.length + 6}`, icon: BarChart3 },
+        { id: 'budget-util', label: 'Budget Utilization', value: '73%', icon: Wallet, pacing: { spent: 73, budget: 100 } },
+      ].filter((kpi) => pinnedKpis.has(kpi.id));
+    }
+
+    const baseData = (() => {
     if (!hasRealData) return mockKpiData;
 
     const totalSpend = campaigns.reduce((s, c) => s + (c.spent || 0), 0);
@@ -2106,13 +2655,35 @@ export default function UnifiedViewDashboard() {
     const revenue = totalSpend * weightedRoas;
 
     return [
-      { label: 'Revenue', value: `$${Math.round(revenue).toLocaleString()}`, icon: DollarSign },
-      { label: 'Conversions', value: totalConversions.toLocaleString(), icon: ShoppingCart },
-      { label: 'CPA', value: `$${avgCpa.toFixed(0)}`, icon: Target, invertColor: true },
-      { label: 'ROAS', value: `${weightedRoas.toFixed(1)}x`, icon: TrendingUp },
-      { label: 'Spend / Pacing', value: `$${Math.round(totalSpend).toLocaleString()}`, icon: Wallet, pacing: { spent: totalSpend, budget: summary.totalBudget || totalSpend } },
+      { id: 'revenue', label: 'Revenue', value: `$${Math.round(revenue).toLocaleString()}`, icon: DollarSign },
+      { id: 'conversions', label: 'Conversions', value: totalConversions.toLocaleString(), icon: ShoppingCart },
+      { id: 'cpa', label: 'CPA', value: `$${avgCpa.toFixed(0)}`, icon: Target, invertColor: true },
+      { id: 'roas', label: 'ROAS', value: `${weightedRoas.toFixed(1)}x`, icon: TrendingUp },
+      { id: 'spend', label: 'Spend / Pacing', value: `$${Math.round(totalSpend).toLocaleString()}`, icon: Wallet, pacing: { spent: totalSpend, budget: summary.totalBudget || totalSpend } },
     ];
-  }, [hasRealData, campaigns, summary.totalBudget]);
+    })();
+
+    // Reorder based on user's key metrics preference, falling back to role config
+    const metricToLabel: Record<string, string> = {
+      'ROAS': 'ROAS', 'CPA': 'CPA', 'CTR': 'CTR', 'Conversions': 'Conversions',
+      'Impressions': 'Impressions', 'Budget pacing': 'Spend / Pacing',
+    };
+
+    let preferred: string[] = [];
+    if (onboardingProfile?.keyMetrics?.length) {
+      preferred = onboardingProfile.keyMetrics
+        .map((m) => metricToLabel[m])
+        .filter(Boolean);
+    } else if (roleConfig?.kpiPriority?.length) {
+      preferred = roleConfig.kpiPriority;
+    }
+
+    const ordered = preferred.length === 0 ? baseData : [
+      ...baseData.filter((k) => preferred.includes(k.label)),
+      ...baseData.filter((k) => !preferred.includes(k.label)),
+    ];
+    return ordered.filter((kpi) => !kpi.id || pinnedKpis.has(kpi.id));
+  }, [dashboardView, hasRealData, campaigns, summary.totalBudget, onboardingProfile?.keyMetrics, roleConfig?.kpiPriority, pinnedKpis]);
 
   // Map a LiveCampaign to a CampaignPerformance card
   const mapToCampaignCard = (c: typeof campaigns[number], i: number): CampaignPerformance => ({
@@ -2238,10 +2809,48 @@ export default function UnifiedViewDashboard() {
     { id: 'creative' as const, label: 'Creative' },
   ];
 
+  // Helper: reorder sections by roleConfig priority
+  function orderSections(
+    sections: { id: string; render: () => React.ReactNode }[],
+    tab: TabId,
+  ) {
+    if (!roleConfig) return sections;
+    const order = roleConfig.sectionOrder[tab];
+    if (!order) return sections;
+    const ordered: typeof sections = [];
+    for (const id of order) {
+      const s = sections.find((sec) => sec.id === id);
+      if (s) ordered.push(s);
+    }
+    // Append any sections not in the order config
+    for (const s of sections) {
+      if (!ordered.includes(s)) ordered.push(s);
+    }
+    return ordered;
+  }
+
+  // Insight callout banner for role-personalized views
+  function renderInsightCallout(tab: TabId) {
+    if (!roleConfig || !onboardingProfile?.role) return null;
+    const text = roleConfig.insightCallouts[tab];
+    if (!text) return null;
+    return (
+      <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-start gap-3 mb-2">
+        <Lightbulb className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+        <div>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-500">
+            {onboardingProfile.role} Insight
+          </span>
+          <p className="text-xs text-blue-700 mt-0.5 leading-relaxed">{text}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full overflow-hidden">
       {/* Slide-in Chat Panel */}
-      <UnifiedChatPanel isOpen={isChatOpen} onClose={() => { setIsChatOpen(false); setTriggerOnboarding(false); }} startOnboarding={triggerOnboarding} />
+      <UnifiedChatPanel isOpen={isChatOpen} onClose={() => { setIsChatOpen(false); setTriggerOnboarding(false); setChartContext(null); }} startOnboarding={triggerOnboarding} pinnedKpis={pinnedKpis} setPinnedKpis={setPinnedKpis} pinnedWidgets={pinnedWidgets} setPinnedWidgets={setPinnedWidgets} chartContext={chartContext} onClearChartContext={() => setChartContext(null)} />
 
       {/* Main column — white rounded canvas */}
       <div className={`flex-1 flex flex-col overflow-y-auto bg-white border border-gray-100 relative ${isChatOpen ? 'rounded-r-2xl' : 'rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)]'}`}>
@@ -2259,27 +2868,40 @@ export default function UnifiedViewDashboard() {
         {/* Fixed header: daily briefing + KPI cards + tabs */}
         <div className="shrink-0 px-6 pt-6">
           <div className={`flex items-center gap-2 mb-2 ${isChatOpen ? '' : 'ml-13'}`}>
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">
-              Daily Briefing
-            </span>
             <span className="text-[11px] text-gray-400">
               {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
             </span>
-            <span className="text-[10px] text-gray-300 ml-auto">
+            <div className="ml-auto flex items-center gap-2">
+              <div className="relative">
+                <select
+                  value={dashboardView}
+                  onChange={(e) => setDashboardView(e.target.value as 'manager' | 'cmo')}
+                  className="appearance-none bg-white border border-gray-200 hover:border-blue-300 rounded-lg pl-3 pr-8 py-1.5 text-xs font-medium text-gray-700 cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
+                >
+                  <option value="manager">Campaign Manager View</option>
+                  <option value="cmo">CMO Dashboard View</option>
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<Sparkles className="w-3 h-3" />}
+                onClick={handlePersonalize}
+                title="Personalize your experience"
+                className="!text-xs !h-[28px] !py-1.5"
+              >
+                Personalize
+              </Button>
+            </div>
+          </div>
+          <div className={`flex items-center gap-3 ${isChatOpen ? '' : 'ml-13'}`}>
+            <h1 className="text-2xl font-semibold bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(to right, #4BC8FE 0%, #94D056 50%)' }}>
+              {new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'}{onboardingCompleted && onboardingProfile?.name ? `, ${onboardingProfile.name}` : ''}!
+            </h1>
+            <span className="text-[11px] text-gray-400 ml-auto">
               Updated {lastRefreshed.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
             </span>
-            <button
-              onClick={handlePersonalize}
-              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all cursor-pointer ${
-                onboardingCompleted
-                  ? 'bg-white text-gray-500 border border-gray-200 hover:border-blue-300 hover:text-blue-600'
-                  : 'bg-blue-600 text-white border border-blue-600 hover:bg-blue-700'
-              }`}
-              title="Personalize your experience"
-            >
-              <Sparkles className="w-3 h-3" />
-              Personalize
-            </button>
             <button
               onClick={handleRefresh}
               disabled={isRefreshing}
@@ -2289,19 +2911,37 @@ export default function UnifiedViewDashboard() {
               <RefreshCw className={`w-3.5 h-3.5 text-gray-400 ${isRefreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
-          <h1 className={`text-2xl font-semibold bg-clip-text text-transparent ${isChatOpen ? '' : 'ml-13'}`} style={{ backgroundImage: 'linear-gradient(to right, #4BC8FE 0%, #94D056 50%)' }}>
-            {new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'}, Alexandra!
-          </h1>
+          {onboardingCompleted && onboardingProfile && (
+            <p className={`text-xs text-gray-400 mt-0.5 ${isChatOpen ? '' : 'ml-13'}`}>
+              {onboardingProfile.role} · {onboardingProfile.industry}{onboardingProfile.goals.length > 0 ? ` · Focus: ${onboardingProfile.goals.slice(0, 2).join(', ')}` : ''}
+            </p>
+          )}
           {hasRealData ? (
             <p className={`text-sm text-gray-500 mt-1 max-w-md ${isChatOpen ? '' : 'ml-13'}`}>
-              {summary.activeCampaigns} active campaign{summary.activeCampaigns !== 1 ? 's' : ''} across ${Math.round(summary.totalSpent).toLocaleString()} total spend.
-              {summary.overallRoas > 0 && ` Blended ROAS: ${summary.overallRoas.toFixed(1)}x.`}
+              {dashboardView === 'cmo'
+                ? <>Portfolio ROAS at {summary.overallRoas > 0 ? `${summary.overallRoas.toFixed(1)}x` : '4.2x'} across {summary.activeCampaigns} campaigns. Total spend ${Math.round(summary.totalSpent).toLocaleString()} with 73% budget utilization.</>
+                : <>{summary.activeCampaigns} active campaign{summary.activeCampaigns !== 1 ? 's' : ''} across ${Math.round(summary.totalSpent).toLocaleString()} total spend.
+                  {summary.overallRoas > 0 && ` Blended ROAS: ${summary.overallRoas.toFixed(1)}x.`}</>
+              }
             </p>
           ) : (
             <p className={`text-sm text-gray-500 mt-1 max-w-md ${isChatOpen ? '' : 'ml-13'}`}>
-              Performance on track. Spend pacing aligned, CPA below target.
-              <br />
-              Two campaigns need attention due to rising costs.
+              {onboardingCompleted && onboardingProfile ? (() => {
+                if (dashboardView === 'cmo') return 'Revenue up 18% MoM to $2.4M. ROAS trending at 4.2x with TikTok as top performer. Budget 73% utilized — on track for quarterly targets.';
+                // Role-specific briefing takes priority
+                if (roleConfig?.dailyBriefing) return roleConfig.dailyBriefing;
+                // Fall back to goals-based briefing
+                const goals = onboardingProfile.goals || [];
+                if (goals.includes('Budget optimization')) return 'Spend pacing aligned. Budget utilization at 68% with CPA trending down 5.1%.';
+                if (goals.includes('Creative performance')) return 'Creative performance strong. Top carousel ads driving 3.8x ROAS. 2 creatives showing fatigue signals.';
+                if (goals.includes('Audience targeting')) return 'Audience segments performing well. Lookalike audiences converting at 2.1x rate vs. interest-based targeting.';
+                if (goals.includes('Cross-channel insights')) return 'Cross-channel performance on track. TikTok leading with 5.2x ROAS. Consider shifting budget from YouTube.';
+                return 'Performance on track. Spend pacing aligned, CPA below target.';
+              })() : (
+                dashboardView === 'cmo'
+                  ? <>Revenue up 18% MoM to $2.4M. ROAS trending at 4.2x with TikTok as top performer.<br />Budget 73% utilized — on track for quarterly targets.</>
+                  : <>Performance on track. Spend pacing aligned, CPA below target.<br />Two campaigns need attention due to rising costs.</>
+              )}
             </p>
           )}
 
@@ -2320,8 +2960,64 @@ export default function UnifiedViewDashboard() {
               />
             ))}
           </div>
+
+          {/* Personalized Focus Areas — only shown after onboarding */}
+          {onboardingCompleted && onboardingProfile && onboardingProfile.goals.length > 0 && (
+            <div className={`mt-4 ${isChatOpen ? '' : 'ml-13'}`}>
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-3.5 h-3.5 text-blue-500" />
+                <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Your Focus Areas</span>
+              </div>
+              <div className="flex gap-3">
+                {onboardingProfile.goals.map((goal) => {
+                  const config: Record<string, { icon: string; metric: string; action: string; color: string }> = {
+                    'Budget optimization': { icon: '💰', metric: '68% utilized · CPA -5.1%', action: 'Review budget shifts', color: 'border-emerald-200 bg-emerald-50/50' },
+                    'Creative performance': { icon: '🎨', metric: '3.8x ROAS · 2 fatigued', action: 'Refresh creatives', color: 'border-amber-200 bg-amber-50/50' },
+                    'Audience targeting': { icon: '🎯', metric: '2.1x lift · 3 segments', action: 'Expand audiences', color: 'border-purple-200 bg-purple-50/50' },
+                    'Cross-channel insights': { icon: '🔗', metric: 'TikTok 5.2x · Meta 4.1x', action: 'View cross-channel', color: 'border-blue-200 bg-blue-50/50' },
+                    'Reporting & analytics': { icon: '📊', metric: '3 reports ready', action: 'View reports', color: 'border-indigo-200 bg-indigo-50/50' },
+                  };
+                  const c = config[goal];
+                  if (!c) return null;
+                  return (
+                    <button
+                      key={goal}
+                      onClick={() => {
+                        const targetTab = goal === 'Creative performance' ? 'creative' as const
+                          : goal === 'Audience targeting' ? 'audience' as const
+                          : goal === 'Reporting & analytics' ? 'campaigns' as const
+                          : 'orchestration' as const;
+                        const sectionId = goal === 'Creative performance' ? 'section-creative'
+                          : goal === 'Audience targeting' ? 'section-audience'
+                          : goal === 'Reporting & analytics' ? 'section-campaigns'
+                          : 'section-budget';
+                        setActiveTab(targetTab);
+                        // Scroll to section after React renders the new tab
+                        requestAnimationFrame(() => {
+                          setTimeout(() => {
+                            document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }, 50);
+                        });
+                      }}
+                      className={`flex-1 flex items-start gap-2.5 px-3 py-2.5 rounded-xl border ${c.color} transition-all hover:shadow-sm cursor-pointer`}
+                    >
+                      <span className="text-base mt-0.5">{c.icon}</span>
+                      <div className="text-left min-w-0">
+                        <div className="text-[11px] font-semibold text-gray-700 truncate">{goal}</div>
+                        <div className="text-[10px] text-gray-500 mt-0.5">{c.metric}</div>
+                        <div className="text-[10px] font-medium text-blue-600 mt-1">{c.action} →</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
+        {dashboardView === 'cmo' ? (
+          <CMODashboardView isChatOpen={isChatOpen} onOpenChat={() => setIsChatOpen(true)} />
+        ) : (<>
         {/* Sticky tab bar */}
         <div className="sticky top-0 z-10 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] py-3">
           <div className={`flex gap-1 px-6 ${isChatOpen ? '' : 'ml-13'}`}>
@@ -2345,1024 +3041,655 @@ export default function UnifiedViewDashboard() {
         <div className={`pr-6 pb-6 pt-5 space-y-6 ${isChatOpen ? 'pl-6' : 'pl-19'}`}>
 
       {/* ── Cross Channel Orchestration Tab ── */}
-      {activeTab === 'orchestration' && (<>
-      {/* Row 1: Budget Allocation Chart + Budget Shifts */}
-      <div className="grid grid-cols-2 gap-6">
-        {/* Budget Allocation */}
-        <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
-          <h3 className="text-sm font-semibold text-gray-900 mb-1">Budget Allocation</h3>
-          <p className="text-xs text-gray-400 mb-5">AI-optimized budget distribution across channels</p>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={budgetData} barGap={4} barCategoryGap="20%">
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                <XAxis dataKey="channel" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-                <Tooltip
-                  formatter={(value: number | undefined) => [`$${(value ?? 0).toLocaleString()}`, '']}
-                  contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 12 }}
-                />
-                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-                <Bar dataKey="current" name="Current Spend" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="recommended" name="Recommended" fill="#10b981" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="flex items-center gap-6 mt-4 pt-4 border-t border-gray-100">
-            <div>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wide">Total Spend</p>
-              <p className="text-sm font-semibold text-gray-900">${(totalCurrent / 1000).toFixed(0)}k</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wide">Efficient ROAS</p>
-              <p className="text-sm font-semibold text-emerald-600">${(totalRecommended / 1000).toFixed(0)}k</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wide">Delta</p>
-              <p className="text-sm font-semibold text-emerald-600">+{delta.toFixed(0)}%</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Recommended Budget Shifts */}
-        <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
-          <h3 className="text-sm font-semibold text-gray-900 mb-1">Recommended Budget Shifts</h3>
-          <p className="text-xs text-gray-400 mb-5">AI-suggested reallocations to improve performance</p>
-          <div className="space-y-3">
-            {budgetShifts.map((shift, i) => (
-              <div key={i} className="p-3 rounded-xl bg-gray-50/80 border border-gray-100">
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-gray-600 whitespace-nowrap">{shift.from}</span>
-                    <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
-                    <span className="text-xs font-medium text-gray-900 whitespace-nowrap">{shift.to}</span>
-                  </div>
-                  <span className="text-sm font-bold text-emerald-600 whitespace-nowrap">+${shift.amount.toLocaleString()}</span>
+      {activeTab === 'orchestration' && (() => {
+        const sections = orderSections([
+          { id: 'budget-allocation-shifts', render: () => (
+            <div id="section-budget" className="grid grid-cols-2 gap-6">
+              <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
+                <SectionHeader title="Budget Allocation" subtitle="AI-optimized budget distribution across channels" onAskAI={() => handleChartAskAI('budget-allocation-shifts')} />
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={budgetData} barGap={4} barCategoryGap="20%">
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                      <XAxis dataKey="channel" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                      <Tooltip formatter={(value: number | undefined) => [`$${(value ?? 0).toLocaleString()}`, '']} contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 12 }} />
+                      <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                      <Bar dataKey="current" name="Current Spend" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="recommended" name="Recommended" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
-                <p className="text-xs text-gray-500">{shift.reason}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Spend by Channel */}
-      <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
-        <div className="flex items-start gap-6">
-          <div className="flex-1">
-            <h3 className="text-sm font-semibold text-gray-900 mb-0.5">Spend by Channel</h3>
-            <p className="text-[10px] text-gray-400 mb-4">Budget distribution across active channels</p>
-            <div className="space-y-2">
-              {channelSpendData.map(c => (
-                <div key={c.channel} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c.color }} />
-                    <span className="text-xs text-gray-600">{c.channel}</span>
-                  </div>
-                  <span className="text-xs font-semibold text-gray-900">${(c.spend / 1000).toFixed(1)}K</span>
-                </div>
-              ))}
-              <div className="pt-2 border-t border-gray-100">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-400">Total</span>
-                  <span className="text-xs font-bold text-gray-900">
-                    ${(channelSpendData.reduce((s, d) => s + d.spend, 0) / 1000).toFixed(1)}K
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="h-[180px] w-[180px] flex-shrink-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={channelPieData}
-                  cx="50%" cy="50%"
-                  innerRadius={50} outerRadius={80}
-                  paddingAngle={3}
-                  dataKey="value"
-                  stroke="none"
-                >
-                  {channelPieData.map((entry, i) => (
-                    <Cell key={entry.name} fill={channelSpendData[i].color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{ borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 11 }}
-                  formatter={(value: number | undefined) => [`$${((value ?? 0) / 1000).toFixed(1)}K`, '']}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      {/* Row 2: Channel Performance Metrics + Top Channels */}
-      <div className="grid grid-cols-2 gap-6">
-        {/* CPA by Channel - Horizontal Bar */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <h3 className="text-sm font-semibold text-gray-900 mb-1">Channel Performance Metrics</h3>
-          <p className="text-xs text-gray-400 mb-5">Cost per acquisition by channel</p>
-          <div className="space-y-3">
-            {cpaByChannel.map((ch) => (
-              <div key={ch.channel} className="flex items-center gap-3">
-                <span className="text-xs text-gray-500 w-24 text-right flex-shrink-0">{ch.channel}</span>
-                <div className="flex-1 h-6 bg-gray-50 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full"
-                    style={{ width: `${(ch.cpa / 80) * 100}%`, backgroundColor: ch.color }}
-                  />
-                </div>
-                <span className="text-xs font-semibold text-gray-900 w-10 flex-shrink-0">${ch.cpa}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Top Performing Channels */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <h3 className="text-sm font-semibold text-gray-900 mb-1">Top Performing Channels</h3>
-          <p className="text-xs text-gray-400 mb-5">Highest ROAS across active campaigns</p>
-          <div className="space-y-3">
-            {mockTopChannels.map((ch, i) => (
-              <div key={ch.name} className="p-4 rounded-xl bg-gray-50/80 border border-gray-100">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px] font-bold">{i + 1}</span>
-                    <span className="text-sm font-semibold text-gray-900">{ch.name}</span>
-                  </div>
-                  <span className="text-xs text-emerald-500 font-medium flex items-center gap-0.5">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
-                    </svg>
-                    Trending
-                  </span>
-                </div>
-                <div className="grid grid-cols-4 gap-3">
+                <div className="flex items-center gap-6 mt-4 pt-4 border-t border-gray-100">
                   <div>
-                    <p className="text-[10px] text-gray-400">ROAS</p>
-                    <p className="text-sm font-bold text-gray-900">{ch.roas}x</p>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wide">Total Spend</p>
+                    <p className="text-sm font-semibold text-gray-900">${(totalCurrent / 1000).toFixed(0)}k</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-gray-400">CTR</p>
-                    <p className="text-sm font-bold text-gray-900">{ch.ctr}%</p>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wide">Efficient ROAS</p>
+                    <p className="text-sm font-semibold text-emerald-600">${(totalRecommended / 1000).toFixed(0)}k</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-gray-400">Spend</p>
-                    <p className="text-sm font-bold text-gray-900">{ch.spend}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-gray-400">Revenue</p>
-                    <p className="text-sm font-bold text-gray-900">{ch.revenue}</p>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wide">Delta</p>
+                    <p className="text-sm font-semibold text-emerald-600">+{delta.toFixed(0)}%</p>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Channel Efficiency Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
-        <h3 className="text-sm font-semibold text-gray-900 mb-1">Channel Efficiency</h3>
-        <p className="text-xs text-gray-400 mb-5">Comprehensive performance breakdown across all channels</p>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100">
-                <th className="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-3 pr-4">Channel</th>
-                <th className="text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-3 px-3">Spend</th>
-                <th className="text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-3 px-3">Revenue</th>
-                <th className="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-3 px-3 w-32">ROAS</th>
-                <th className="text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-3 px-3">CPA</th>
-                <th className="text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-3 px-3">CTR</th>
-                <th className="text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-3 pl-3">Conv. Rate</th>
-              </tr>
-            </thead>
-            <tbody>
-              {channelEfficiencyTableData.map((row) => (
-                <tr key={row.channel} className="border-b border-gray-50 last:border-0">
-                  <td className="py-3 pr-4 font-medium text-gray-900 text-xs">{row.channel}</td>
-                  <td className="py-3 px-3 text-right text-xs text-gray-600">{row.spend}</td>
-                  <td className="py-3 px-3 text-right text-xs text-gray-600">{row.revenue}</td>
-                  <td className="py-3 px-3">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full"
-                          style={{
-                            width: `${row.roasBar}%`,
-                            backgroundColor: row.roas >= 4 ? '#10b981' : row.roas >= 3 ? '#f59e0b' : '#ef4444',
-                          }}
-                        />
+              <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
+                <SectionHeader title="Recommended Budget Shifts" subtitle="AI-suggested reallocations to improve performance" onAskAI={() => handleChartAskAI('budget-allocation-shifts')} />
+                <div className="space-y-3">
+                  {budgetShifts.map((shift, i) => (
+                    <div key={i} className="p-3 rounded-xl bg-gray-50/80 border border-gray-100">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-gray-600 whitespace-nowrap">{shift.from}</span>
+                          <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                          </svg>
+                          <span className="text-xs font-medium text-gray-900 whitespace-nowrap">{shift.to}</span>
+                        </div>
+                        <span className="text-sm font-bold text-emerald-600 whitespace-nowrap">+${shift.amount.toLocaleString()}</span>
                       </div>
-                      <span className="text-xs font-semibold text-gray-900 w-8">{row.roas}x</span>
+                      <p className="text-xs text-gray-500">{shift.reason}</p>
                     </div>
-                  </td>
-                  <td className="py-3 px-3 text-right text-xs text-gray-600">${row.cpa}</td>
-                  <td className="py-3 px-3 text-right text-xs text-gray-600">{row.ctr}%</td>
-                  <td className="py-3 pl-3 text-right text-xs text-gray-600">{row.convRate}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      </>)}
+                  ))}
+                </div>
+              </div>
+            </div>
+          )},
+          { id: 'spend-by-channel', render: () => (
+            <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
+              <SectionHeader title="Spend by Channel" subtitle="Budget distribution across active channels" onAskAI={() => handleChartAskAI('spend-by-channel')} />
+              <div className="flex items-start gap-6">
+                <div className="flex-1">
+                  <div className="space-y-2">
+                    {channelSpendData.map(c => (
+                      <div key={c.channel} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c.color }} />
+                          <span className="text-xs text-gray-600">{c.channel}</span>
+                        </div>
+                        <span className="text-xs font-semibold text-gray-900">${(c.spend / 1000).toFixed(1)}K</span>
+                      </div>
+                    ))}
+                    <div className="pt-2 border-t border-gray-100">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-400">Total</span>
+                        <span className="text-xs font-bold text-gray-900">
+                          ${(channelSpendData.reduce((s, d) => s + d.spend, 0) / 1000).toFixed(1)}K
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="h-[180px] w-[180px] flex-shrink-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={channelPieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value" stroke="none">
+                        {channelPieData.map((entry, i) => (
+                          <Cell key={entry.name} fill={channelSpendData[i].color} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 11 }} formatter={(value: number | undefined) => [`$${((value ?? 0) / 1000).toFixed(1)}K`, '']} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          )},
+          { id: 'cpa-top-channels', render: () => (
+            <div className="grid grid-cols-2 gap-6">
+              <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                <SectionHeader title="Channel Performance Metrics" subtitle="Cost per acquisition by channel" onAskAI={() => handleChartAskAI('cpa-top-channels')} />
+                <div className="space-y-3">
+                  {cpaByChannel.map((ch) => (
+                    <div key={ch.channel} className="flex items-center gap-3">
+                      <span className="text-xs text-gray-500 w-24 text-right flex-shrink-0">{ch.channel}</span>
+                      <div className="flex-1 h-6 bg-gray-50 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${(ch.cpa / 80) * 100}%`, backgroundColor: ch.color }} />
+                      </div>
+                      <span className="text-xs font-semibold text-gray-900 w-10 flex-shrink-0">${ch.cpa}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                <SectionHeader title="Top Performing Channels" subtitle="Highest ROAS across active campaigns" onAskAI={() => handleChartAskAI('cpa-top-channels')} />
+                <div className="space-y-3">
+                  {mockTopChannels.map((ch, i) => (
+                    <div key={ch.name} className="p-4 rounded-xl bg-gray-50/80 border border-gray-100">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px] font-bold">{i + 1}</span>
+                          <span className="text-sm font-semibold text-gray-900">{ch.name}</span>
+                        </div>
+                        <span className="text-xs text-emerald-500 font-medium flex items-center gap-0.5">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+                          </svg>
+                          Trending
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-3">
+                        <div><p className="text-[10px] text-gray-400">ROAS</p><p className="text-sm font-bold text-gray-900">{ch.roas}x</p></div>
+                        <div><p className="text-[10px] text-gray-400">CTR</p><p className="text-sm font-bold text-gray-900">{ch.ctr}%</p></div>
+                        <div><p className="text-[10px] text-gray-400">Spend</p><p className="text-sm font-bold text-gray-900">{ch.spend}</p></div>
+                        <div><p className="text-[10px] text-gray-400">Revenue</p><p className="text-sm font-bold text-gray-900">{ch.revenue}</p></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )},
+          { id: 'channel-efficiency-table', render: () => (
+            <div className="bg-white rounded-2xl border border-gray-100 p-6">
+              <SectionHeader title="Channel Efficiency" subtitle="Comprehensive performance breakdown across all channels" onAskAI={() => handleChartAskAI('channel-efficiency-table')} />
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100">
+                      <th className="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-3 pr-4">Channel</th>
+                      <th className="text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-3 px-3">Spend</th>
+                      <th className="text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-3 px-3">Revenue</th>
+                      <th className="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-3 px-3 w-32">ROAS</th>
+                      <th className="text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-3 px-3">CPA</th>
+                      <th className="text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-3 px-3">CTR</th>
+                      <th className="text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-3 pl-3">Conv. Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {channelEfficiencyTableData.map((row) => (
+                      <tr key={row.channel} className="border-b border-gray-50 last:border-0">
+                        <td className="py-3 pr-4 font-medium text-gray-900 text-xs">{row.channel}</td>
+                        <td className="py-3 px-3 text-right text-xs text-gray-600">{row.spend}</td>
+                        <td className="py-3 px-3 text-right text-xs text-gray-600">{row.revenue}</td>
+                        <td className="py-3 px-3">
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                              <div className="h-full rounded-full" style={{ width: `${row.roasBar}%`, backgroundColor: row.roas >= 4 ? '#10b981' : row.roas >= 3 ? '#f59e0b' : '#ef4444' }} />
+                            </div>
+                            <span className="text-xs font-semibold text-gray-900 w-8">{row.roas}x</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 text-right text-xs text-gray-600">${row.cpa}</td>
+                        <td className="py-3 px-3 text-right text-xs text-gray-600">{row.ctr}%</td>
+                        <td className="py-3 pl-3 text-right text-xs text-gray-600">{row.convRate}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )},
+        ], 'orchestration');
+        return (<>
+          {renderInsightCallout('orchestration')}
+          {sections.filter(s => pinnedWidgets.has(s.id)).map(s => <Fragment key={s.id}>{s.render()}</Fragment>)}
+        </>);
+      })()}
 
       {/* ── Campaigns Tab ── */}
-      {activeTab === 'campaigns' && (<>
-      {/* Campaign Performance Trend - Switchable Metric */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h4 className="text-sm font-semibold text-gray-900 mb-0.5">Campaign Performance Trend</h4>
-            <p className="text-xs text-gray-400">Past 14 days</p>
-          </div>
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
-            {(['spend', 'conversions', 'roas'] as const).map(m => (
-              <button
-                key={m}
-                onClick={() => setCampaignTrendMetric(m)}
-                className={`px-2.5 py-1 rounded-md text-[10px] font-medium transition-all cursor-pointer border-none ${
-                  campaignTrendMetric === m ? 'bg-white text-gray-900 shadow-sm' : 'bg-transparent text-gray-500'
-                }`}
-              >
-                {m === 'spend' ? 'Spend' : m === 'conversions' ? 'Conv.' : 'ROAS'}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={campaignPerformanceTrend} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
-              <defs>
-                <linearGradient id="campaignTrendGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={
-                    campaignTrendMetric === 'spend' ? '#3b82f6' : campaignTrendMetric === 'conversions' ? '#10b981' : '#8b5cf6'
-                  } stopOpacity={0.15} />
-                  <stop offset="95%" stopColor={
-                    campaignTrendMetric === 'spend' ? '#3b82f6' : campaignTrendMetric === 'conversions' ? '#10b981' : '#8b5cf6'
-                  } stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-              <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-              <YAxis
-                tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false}
-                tickFormatter={v =>
-                  campaignTrendMetric === 'spend' ? `$${(v / 1000).toFixed(0)}k`
-                  : campaignTrendMetric === 'roas' ? `${v}x`
-                  : String(v)
-                }
-              />
-              <Tooltip
-                contentStyle={{ borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 11, padding: '8px 12px' }}
-                formatter={(value: number | undefined) => [
-                  campaignTrendMetric === 'spend' ? `$${(value ?? 0).toLocaleString()}`
-                  : campaignTrendMetric === 'roas' ? `${value}x`
-                  : String(value ?? 0),
-                  campaignTrendMetric === 'spend' ? 'Spend' : campaignTrendMetric === 'conversions' ? 'Conversions' : 'ROAS'
-                ]}
-              />
-              <Area
-                type="monotone"
-                dataKey={campaignTrendMetric}
-                stroke={campaignTrendMetric === 'spend' ? '#3b82f6' : campaignTrendMetric === 'conversions' ? '#10b981' : '#8b5cf6'}
-                strokeWidth={2}
-                fill="url(#campaignTrendGrad)"
-                dot={false}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Campaign Type & Status Distribution */}
-      <div className="grid grid-cols-2 gap-6 mb-6">
-        {/* Campaign Type Breakdown */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <h4 className="text-sm font-semibold text-gray-900 mb-1">Campaigns by Type</h4>
-          <p className="text-xs text-gray-400 mb-4">Distribution across campaign objectives</p>
-          <div className="flex items-center gap-6">
-            <div className="h-[160px] w-[160px] flex-shrink-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={campaignTypeBreakdown}
-                    cx="50%" cy="50%"
-                    innerRadius={45} outerRadius={70}
-                    paddingAngle={3}
-                    dataKey="value"
-                    stroke="none"
-                  >
-                    {campaignTypeBreakdown.map((entry) => (
-                      <Cell key={entry.name} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{ borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 11 }}
-                    formatter={(value: number | undefined) => [`${value ?? 0} campaigns`, '']}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="space-y-2 flex-1">
-              {campaignTypeBreakdown.map((item) => (
-                <div key={item.name} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
-                    <span className="text-xs text-gray-600">{item.name}</span>
-                  </div>
-                  <span className="text-xs font-semibold text-gray-900">{item.value}</span>
-                </div>
-              ))}
-              <div className="pt-2 border-t border-gray-100">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-400">Total</span>
-                  <span className="text-xs font-bold text-gray-900">
-                    {campaignTypeBreakdown.reduce((s, d) => s + d.value, 0)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Campaign Status Distribution */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <h4 className="text-sm font-semibold text-gray-900 mb-1">Campaigns by Status</h4>
-          <p className="text-xs text-gray-400 mb-4">Current operational state</p>
-          <div className="flex items-center gap-6">
-            <div className="h-[160px] w-[160px] flex-shrink-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={campaignStatusBreakdown}
-                    cx="50%" cy="50%"
-                    innerRadius={45} outerRadius={70}
-                    paddingAngle={3}
-                    dataKey="value"
-                    stroke="none"
-                  >
-                    {campaignStatusBreakdown.map((entry) => (
-                      <Cell key={entry.name} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{ borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 11 }}
-                    formatter={(value: number | undefined) => [`${value ?? 0} campaigns`, '']}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="space-y-2 flex-1">
-              {campaignStatusBreakdown.map((item) => (
-                <div key={item.name} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
-                    <span className="text-xs text-gray-600">{item.name}</span>
-                  </div>
-                  <span className="text-xs font-semibold text-gray-900">{item.value}</span>
-                </div>
-              ))}
-              <div className="pt-2 border-t border-gray-100">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-400">Total</span>
-                  <span className="text-xs font-bold text-gray-900">
-                    {campaignStatusBreakdown.reduce((s, d) => s + d.value, 0)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Campaigns List */}
-      <div className="bg-gray-50/60 rounded-xl p-5 border border-gray-100">
-        <div className="flex items-center gap-2 mb-1">
-          <Trophy className="w-4 h-4 text-amber-500" />
-          <h2 className="text-base font-semibold text-gray-900">
-            {hasRealData ? 'All Campaigns' : 'Top Performing Campaigns'}
-          </h2>
-        </div>
-        <p className="text-xs text-gray-500 mb-5">
-          {hasRealData
-            ? `${topCampaigns.length} campaign${topCampaigns.length !== 1 ? 's' : ''} from Meta Ads sorted by ROAS`
-            : 'Highest efficiency campaigns driving the best ROAS and conversion volume'}
-        </p>
-        <div className={`grid gap-4 ${topCampaigns.length <= 3 ? 'grid-cols-3' : 'grid-cols-2 lg:grid-cols-3'}`}>
-          {topCampaigns.map((c) => {
-            const platformInfo = getPlatformLabel(c.platform);
-            return (
-            <div
-              key={c.rank}
-              className="bg-white rounded-2xl border border-gray-100 p-5"
-            >
-              {/* Header pills */}
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs font-bold">
-                    #{c.rank}
-                  </span>
-                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1 ${getStatusPillStyle(c.status)}`}>
-                    {getStatusIcon(c.status)}
-                    {c.status}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  {platformInfo && (
-                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${platformInfo.bg}`}>
-                      {platformInfo.label}
-                    </span>
-                  )}
-                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-                    {c.type}
-                  </span>
-                </div>
-              </div>
-              {/* Campaign name */}
-              <h5 className="text-sm font-semibold text-gray-900 mb-3 leading-snug">{c.name}</h5>
-              {/* Metrics grid */}
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-3">
+      {activeTab === 'campaigns' && (() => {
+        const sections = orderSections([
+          { id: 'performance-trend', render: () => (
+            <div id="section-campaigns" className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
+              <div className="flex items-center justify-between mb-4">
                 <div>
-                  <p className="text-[10px] text-gray-400">ROAS</p>
-                  <p className="text-sm font-bold text-gray-900">{c.roas.toFixed(1)}x</p>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-0.5">Campaign Performance Trend</h4>
+                  <p className="text-xs text-gray-400">Past 14 days</p>
                 </div>
-                <div>
-                  <p className="text-[10px] text-gray-400">CPA</p>
-                  <p className="text-sm font-bold text-gray-900">${c.cpa}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-gray-400">Revenue</p>
-                  <p className="text-sm font-bold text-gray-900">${(c.revenue / 1000).toFixed(1)}k</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-gray-400">Trend</p>
-                  <p className="text-sm font-bold text-emerald-500 flex items-center gap-0.5">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
-                    </svg>
-                    {c.trend}%
-                  </p>
-                </div>
-              </div>
-              {/* Insights */}
-              <div className="border-t border-gray-100 pt-3 space-y-1.5">
-                <div className="flex items-start gap-1.5">
-                  <span className="w-1 h-1 rounded-full bg-emerald-400 mt-1.5 flex-shrink-0" />
-                  <p className="text-[11px] text-gray-500 leading-relaxed">{c.insights[0]}</p>
-                </div>
-                <div className="flex items-start gap-1.5">
-                  <span className="w-1 h-1 rounded-full bg-emerald-400 mt-1.5 flex-shrink-0" />
-                  <p className="text-[11px] text-gray-500 leading-relaxed">{c.insights[1]}</p>
-                </div>
-              </div>
-            </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Bottom Performing Campaigns — only shown with mock data */}
-      {bottomCampaigns.length > 0 && (
-      <div className="bg-gray-50/60 rounded-xl p-5 border border-gray-100">
-        <div className="flex items-center gap-2 mb-1">
-          <AlertTriangle className="w-4 h-4 text-red-400" />
-          <h2 className="text-base font-semibold text-gray-900">
-            Bottom Performing Campaigns
-          </h2>
-        </div>
-        <p className="text-xs text-gray-500 mb-5">
-          Bottom 3 of 24 active campaigns — candidates for pausing or budget reallocation
-        </p>
-        <div className="grid grid-cols-3 gap-4">
-          {bottomCampaigns.map((c) => {
-            const platformInfo = getPlatformLabel(c.platform);
-            return (
-            <div
-              key={c.rank + c.name}
-              className="bg-white rounded-2xl border border-gray-100 p-5"
-            >
-              {/* Header pills */}
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-red-100 text-red-500 flex items-center justify-center text-xs font-bold">
-                    #{c.rank}
-                  </span>
-                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1 ${getStatusPillStyle(c.status)}`}>
-                    {getStatusIcon(c.status)}
-                    {c.status}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  {platformInfo && (
-                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${platformInfo.bg}`}>
-                      {platformInfo.label}
-                    </span>
-                  )}
-                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-                    {c.type}
-                  </span>
-                </div>
-              </div>
-              {/* Campaign name */}
-              <h5 className="text-sm font-semibold text-gray-900 mb-3 leading-snug">{c.name}</h5>
-              {/* Metrics grid */}
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-3">
-                <div>
-                  <p className="text-[10px] text-gray-400">ROAS</p>
-                  <p className="text-sm font-bold text-gray-900">{c.roas.toFixed(1)}x</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-gray-400">CPA</p>
-                  <p className="text-sm font-bold text-gray-900">${c.cpa}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-gray-400">Revenue</p>
-                  <p className="text-sm font-bold text-gray-900">${(c.revenue / 1000).toFixed(1)}k</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-gray-400">Trend</p>
-                  <p className="text-sm font-bold text-red-500 flex items-center gap-0.5">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                    </svg>
-                    {c.trend}%
-                  </p>
-                </div>
-              </div>
-              {/* Insights */}
-              <div className="border-t border-gray-100 pt-3 space-y-1.5">
-                <div className="flex items-start gap-1.5">
-                  <span className="w-1 h-1 rounded-full bg-red-400 mt-1.5 flex-shrink-0" />
-                  <p className="text-[11px] text-gray-500 leading-relaxed">{c.insights[0]}</p>
-                </div>
-                <div className="flex items-start gap-1.5">
-                  <span className="w-1 h-1 rounded-full bg-red-400 mt-1.5 flex-shrink-0" />
-                  <p className="text-[11px] text-gray-500 leading-relaxed">{c.insights[1]}</p>
-                </div>
-              </div>
-            </div>
-            );
-          })}
-        </div>
-      </div>
-      )}
-      </>)}
-
-      {/* ── Audience Tab ── */}
-      {activeTab === 'audience' && (<>
-      {/* Audience ROAS Comparison + Spend vs Revenue */}
-      <div className="grid grid-cols-2 gap-6 mb-6">
-        {/* Audience ROAS Comparison */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <h4 className="text-sm font-semibold text-gray-900 mb-1">Audience ROAS Comparison</h4>
-          <p className="text-xs text-gray-400 mb-5">Return on ad spend by segment</p>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={audienceSpendRevenueData} layout="vertical" barSize={16}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
-                <XAxis
-                  type="number"
-                  tick={{ fontSize: 11, fill: '#9ca3af' }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v) => `${v}x`}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  tick={{ fontSize: 10, fill: '#9ca3af' }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={100}
-                />
-                <Tooltip
-                  contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 12 }}
-                  formatter={(value: number | undefined) => [`${value ?? 0}x`, 'ROAS']}
-                />
-                <Bar dataKey="roas" radius={[0, 4, 4, 0]}>
-                  {audienceSpendRevenueData.map((entry) => (
-                    <Cell
-                      key={entry.name}
-                      fill={entry.roas >= 4 ? '#10b981' : entry.roas >= 2.5 ? '#f59e0b' : '#ef4444'}
-                    />
+                <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
+                  {(['spend', 'conversions', 'roas'] as const).map(m => (
+                    <button key={m} onClick={() => setCampaignTrendMetric(m)} className={`px-2.5 py-1 rounded-md text-[10px] font-medium transition-all cursor-pointer border-none ${campaignTrendMetric === m ? 'bg-white text-gray-900 shadow-sm' : 'bg-transparent text-gray-500'}`}>
+                      {m === 'spend' ? 'Spend' : m === 'conversions' ? 'Conv.' : 'ROAS'}
+                    </button>
                   ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Spend vs Revenue */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <h4 className="text-sm font-semibold text-gray-900 mb-1">Spend vs Revenue by Audience</h4>
-          <p className="text-xs text-gray-400 mb-5">Investment efficiency across segments</p>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={audienceSpendRevenueData} barGap={4} barCategoryGap="25%">
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                <XAxis
-                  dataKey="name"
-                  tick={{ fontSize: 9, fill: '#9ca3af' }}
-                  axisLine={false}
-                  tickLine={false}
-                  angle={-20}
-                  textAnchor="end"
-                  height={50}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fill: '#9ca3af' }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
-                />
-                <Tooltip
-                  contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 12 }}
-                  formatter={(value: number | undefined) => [`$${(value ?? 0).toLocaleString()}`, '']}
-                />
-                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-                <Bar dataKey="spend" name="Spend" fill="#ef4444" radius={[4, 4, 0, 0]} fillOpacity={0.8} />
-                <Bar dataKey="revenue" name="Revenue" fill="#10b981" radius={[4, 4, 0, 0]} fillOpacity={0.8} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <div className="flex items-center gap-2 mb-1">
-          <Users className="w-4 h-4 text-blue-500" />
-          <h2 className="text-base font-semibold text-gray-900">Audience Performance Analysis</h2>
-        </div>
-        <p className="text-xs text-gray-500 mb-5">
-          Segment-level performance across all active campaigns and channels
-        </p>
-        <div className="grid grid-cols-4 gap-4">
-          {audienceSegments.map((seg) => {
-            const roasLevel = seg.roas >= 4.0 ? 'high' : seg.roas >= 2.5 ? 'medium' : 'low';
-            const trendPositive = seg.trend > 0;
-
-            return (
-              <div key={seg.id} className="bg-white rounded-2xl border border-gray-100 p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <h5 className="text-sm font-semibold text-gray-900 leading-snug">{seg.demo}</h5>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    roasLevel === 'high' ? 'bg-emerald-50 text-emerald-600' :
-                    roasLevel === 'medium' ? 'bg-amber-50 text-amber-600' :
-                    'bg-red-50 text-red-500'
-                  }`}>{seg.roas.toFixed(1)}x ROAS</span>
-                </div>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-3">
-                  <div>
-                    <p className="text-[10px] text-gray-400">Spend</p>
-                    <p className="text-sm font-bold text-gray-900">${(seg.spend / 1000).toFixed(1)}k</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-gray-400">Revenue</p>
-                    <p className="text-sm font-bold text-gray-900">${(seg.revenue / 1000).toFixed(1)}k</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-gray-400">Conversions</p>
-                    <p className="text-sm font-bold text-gray-900">{seg.conversions.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-gray-400">Trend</p>
-                    <p className={`text-sm font-bold flex items-center gap-0.5 ${trendPositive ? 'text-emerald-500' : 'text-red-500'}`}>
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={trendPositive ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
-                      </svg>
-                      {trendPositive ? '+' : ''}{seg.trend}%
-                    </p>
-                  </div>
-                </div>
-                <div className="border-t border-gray-100 pt-3">
-                  <p className="text-[10px] text-gray-400 mb-1">
-                    Top Channel: <span className="font-semibold text-gray-700">{seg.topChannel}</span> <span className="text-gray-300">({seg.campaignCount} campaigns)</span>
-                  </p>
-                  <p className="text-[11px] text-gray-500 leading-relaxed">{seg.insight}</p>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </div>
-      </>)}
-
-      {/* ── Creative Tab ── */}
-      {activeTab === 'creative' && (<>
-      {/* Creative Format Performance + Fatigue Tracker */}
-      <div className="grid grid-cols-2 gap-6 mb-6">
-        {/* Format Performance */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <h4 className="text-sm font-semibold text-gray-900 mb-1">Performance by Format</h4>
-          <p className="text-xs text-gray-400 mb-5">Average ROAS and CTR by creative type</p>
-          <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={creativeFormatPerformance} barGap={4} barCategoryGap="30%">
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                <XAxis dataKey="format" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                <YAxis
-                  yAxisId="left"
-                  tick={{ fontSize: 11, fill: '#9ca3af' }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v) => `${v}x`}
-                />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  tick={{ fontSize: 11, fill: '#9ca3af' }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v) => `${v}%`}
-                />
-                <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 12 }} />
-                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-                <Bar yAxisId="left" dataKey="avgRoas" name="Avg ROAS" fill="#10b981" radius={[4, 4, 0, 0]} />
-                <Bar yAxisId="right" dataKey="avgCtr" name="Avg CTR %" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-100">
-            {creativeFormatPerformance.map((f) => (
-              <div key={f.format} className="text-center">
-                <p className="text-[10px] text-gray-400 uppercase tracking-wide">{f.format}</p>
-                <p className="text-sm font-bold text-gray-900">{f.count} creatives</p>
-                <p className="text-[10px] text-gray-400">${(f.spend / 1000).toFixed(1)}k spend</p>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={campaignPerformanceTrend} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
+                    <defs>
+                      <linearGradient id="campaignTrendGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={campaignTrendMetric === 'spend' ? '#3b82f6' : campaignTrendMetric === 'conversions' ? '#10b981' : '#8b5cf6'} stopOpacity={0.15} />
+                        <stop offset="95%" stopColor={campaignTrendMetric === 'spend' ? '#3b82f6' : campaignTrendMetric === 'conversions' ? '#10b981' : '#8b5cf6'} stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                    <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={v => campaignTrendMetric === 'spend' ? `$${(v / 1000).toFixed(0)}k` : campaignTrendMetric === 'roas' ? `${v}x` : String(v)} />
+                    <Tooltip contentStyle={{ borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 11, padding: '8px 12px' }} formatter={(value: number | undefined) => [campaignTrendMetric === 'spend' ? `$${(value ?? 0).toLocaleString()}` : campaignTrendMetric === 'roas' ? `${value}x` : String(value ?? 0), campaignTrendMetric === 'spend' ? 'Spend' : campaignTrendMetric === 'conversions' ? 'Conversions' : 'ROAS']} />
+                    <Area type="monotone" dataKey={campaignTrendMetric} stroke={campaignTrendMetric === 'spend' ? '#3b82f6' : campaignTrendMetric === 'conversions' ? '#10b981' : '#8b5cf6'} strokeWidth={2} fill="url(#campaignTrendGrad)" dot={false} />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Creative Fatigue Tracker */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <h4 className="text-sm font-semibold text-gray-900 mb-1">Creative Fatigue Tracker</h4>
-          <p className="text-xs text-gray-400 mb-5">Lifecycle health across all active creatives</p>
-          <div className="space-y-2.5">
-            {[...creativeFatigueTimeline]
-              .sort((a, b) => b.fatigue - a.fatigue)
-              .map((c) => (
-              <div key={c.name} className="flex items-center gap-3">
-                <span className="text-[11px] text-gray-600 w-[120px] truncate flex-shrink-0" title={c.name}>
-                  {c.name}
-                </span>
-                <div className="flex-1 h-5 bg-gray-50 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${c.fatigue}%`,
-                      backgroundColor: c.status === 'danger' ? '#ef4444'
-                        : c.status === 'warning' ? '#f59e0b'
-                        : '#10b981',
-                    }}
-                  />
-                </div>
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <span className={`text-[10px] font-semibold ${
-                    c.status === 'danger' ? 'text-red-500'
-                      : c.status === 'warning' ? 'text-amber-500'
-                      : 'text-emerald-500'
-                  }`}>
-                    {c.fatigue}%
-                  </span>
-                  <span className="text-[10px] text-gray-400">{c.daysActive}d</span>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center gap-4 mt-4 pt-3 border-t border-gray-100">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span className="text-[10px] text-gray-400">Fresh (&lt;50%)</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-amber-500" />
-              <span className="text-[10px] text-gray-400">Warning (50-69%)</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-red-500" />
-              <span className="text-[10px] text-gray-400">Fatigued (70%+)</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Top Performing Creatives */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
-        <h4 className="text-sm font-semibold text-gray-900 mb-0.5">Top Performing Creatives</h4>
-        <p className="text-[10px] text-gray-400 mb-4">Ranked by ROAS</p>
-        <div className="grid grid-cols-4 gap-3">
-          {topCreatives.map((cr, i) => (
-            <div key={cr.name} className="bg-gray-50 rounded-xl px-4 py-3.5">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-[9px] font-bold text-gray-500">
-                  {i + 1}
-                </span>
-                <span className="text-[10px] font-medium text-gray-400">{cr.type} · {cr.channel}</span>
+          )},
+          { id: 'type-status-breakdown', render: () => (
+            <div className="grid grid-cols-2 gap-6 mb-6">
+              <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                <h4 className="text-sm font-semibold text-gray-900 mb-1">Campaigns by Type</h4>
+                <p className="text-xs text-gray-400 mb-4">Distribution across campaign objectives</p>
+                <div className="flex items-center gap-6">
+                  <div className="h-[160px] w-[160px] flex-shrink-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={campaignTypeBreakdown} cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={3} dataKey="value" stroke="none">
+                          {campaignTypeBreakdown.map((entry) => (<Cell key={entry.name} fill={entry.color} />))}
+                        </Pie>
+                        <Tooltip contentStyle={{ borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 11 }} formatter={(value: number | undefined) => [`${value ?? 0} campaigns`, '']} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="space-y-2 flex-1">
+                    {campaignTypeBreakdown.map((item) => (
+                      <div key={item.name} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                          <span className="text-xs text-gray-600">{item.name}</span>
+                        </div>
+                        <span className="text-xs font-semibold text-gray-900">{item.value}</span>
+                      </div>
+                    ))}
+                    <div className="pt-2 border-t border-gray-100">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-400">Total</span>
+                        <span className="text-xs font-bold text-gray-900">{campaignTypeBreakdown.reduce((s, d) => s + d.value, 0)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <p className="text-xs font-semibold text-gray-900 mb-2 truncate" title={cr.name}>{cr.name}</p>
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <div className="text-[9px] text-gray-400">Impr.</div>
-                  <div className="text-[10px] font-semibold text-gray-900">{cr.impressions}</div>
-                </div>
-                <div>
-                  <div className="text-[9px] text-gray-400">CTR</div>
-                  <div className="text-[10px] font-semibold text-gray-900">{cr.ctr}</div>
-                </div>
-                <div>
-                  <div className="text-[9px] text-gray-400">ROAS</div>
-                  <div className="text-[10px] font-semibold text-emerald-600">{cr.roas}x</div>
+              <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                <h4 className="text-sm font-semibold text-gray-900 mb-1">Campaigns by Status</h4>
+                <p className="text-xs text-gray-400 mb-4">Current operational state</p>
+                <div className="flex items-center gap-6">
+                  <div className="h-[160px] w-[160px] flex-shrink-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={campaignStatusBreakdown} cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={3} dataKey="value" stroke="none">
+                          {campaignStatusBreakdown.map((entry) => (<Cell key={entry.name} fill={entry.color} />))}
+                        </Pie>
+                        <Tooltip contentStyle={{ borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 11 }} formatter={(value: number | undefined) => [`${value ?? 0} campaigns`, '']} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="space-y-2 flex-1">
+                    {campaignStatusBreakdown.map((item) => (
+                      <div key={item.name} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                          <span className="text-xs text-gray-600">{item.name}</span>
+                        </div>
+                        <span className="text-xs font-semibold text-gray-900">{item.value}</span>
+                      </div>
+                    ))}
+                    <div className="pt-2 border-t border-gray-100">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-400">Total</span>
+                        <span className="text-xs font-bold text-gray-900">{campaignStatusBreakdown.reduce((s, d) => s + d.value, 0)}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Bubble Chart */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
-        <h4 className="text-sm font-semibold text-gray-900 mb-1">Creative Performance: Volume vs. ROAS</h4>
-        <p className="text-xs text-gray-400 mb-5">Bubble size represents spend allocation</p>
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <ScatterChart margin={{ top: 10, right: 30, bottom: 10, left: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis
-                dataKey="impressions"
-                type="number"
-                name="Impressions"
-                tick={{ fontSize: 11, fill: '#9ca3af' }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
-                label={{ value: 'Impressions (Volume)', position: 'insideBottom', offset: -5, fontSize: 11, fill: '#9ca3af' }}
-              />
-              <YAxis
-                dataKey="roas"
-                type="number"
-                name="ROAS"
-                tick={{ fontSize: 11, fill: '#9ca3af' }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={(v) => `${v}x`}
-                label={{ value: 'ROAS', angle: -90, position: 'insideLeft', fontSize: 11, fill: '#9ca3af' }}
-              />
-              <ZAxis dataKey="spend" range={[200, 1200]} name="Spend" />
-              <Tooltip
-                cursor={{ strokeDasharray: '3 3' }}
-                content={({ active, payload }) => {
-                  if (!active || !payload?.length) return null;
-                  const d = payload[0].payload;
+          )},
+          { id: 'top-performing', render: () => (
+            <div className="bg-gray-50/60 rounded-xl p-5 border border-gray-100">
+              <div className="flex items-center gap-2 mb-1">
+                <Trophy className="w-4 h-4 text-amber-500" />
+                <h2 className="text-base font-semibold text-gray-900">{hasRealData ? 'All Campaigns' : 'Top Performing Campaigns'}</h2>
+              </div>
+              <p className="text-xs text-gray-500 mb-5">{hasRealData ? `${topCampaigns.length} campaign${topCampaigns.length !== 1 ? 's' : ''} from Meta Ads sorted by ROAS` : 'Highest efficiency campaigns driving the best ROAS and conversion volume'}</p>
+              <div className={`grid gap-4 ${topCampaigns.length <= 3 ? 'grid-cols-3' : 'grid-cols-2 lg:grid-cols-3'}`}>
+                {topCampaigns.map((c) => {
+                  const platformInfo = getPlatformLabel(c.platform);
                   return (
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-lg px-4 py-3 text-xs">
-                      <p className="font-semibold text-gray-900 mb-1">{d.name}</p>
-                      <p className="text-gray-500">Channel: <span className="text-gray-700">{d.channel}</span></p>
-                      <p className="text-gray-500">Impressions: <span className="text-gray-700">{(d.impressions / 1000).toFixed(0)}k</span></p>
-                      <p className="text-gray-500">ROAS: <span className="text-gray-700">{d.roas}x</span></p>
-                      <p className="text-gray-500">Spend: <span className="text-gray-700">${d.spend.toLocaleString()}</span></p>
+                    <div key={c.rank} className="bg-white rounded-2xl border border-gray-100 p-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs font-bold">#{c.rank}</span>
+                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1 ${getStatusPillStyle(c.status)}`}>{getStatusIcon(c.status)}{c.status}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {platformInfo && (<span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${platformInfo.bg}`}>{platformInfo.label}</span>)}
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{c.type}</span>
+                        </div>
+                      </div>
+                      <h5 className="text-sm font-semibold text-gray-900 mb-3 leading-snug">{c.name}</h5>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-3">
+                        <div><p className="text-[10px] text-gray-400">ROAS</p><p className="text-sm font-bold text-gray-900">{c.roas.toFixed(1)}x</p></div>
+                        <div><p className="text-[10px] text-gray-400">CPA</p><p className="text-sm font-bold text-gray-900">${c.cpa}</p></div>
+                        <div><p className="text-[10px] text-gray-400">Revenue</p><p className="text-sm font-bold text-gray-900">${(c.revenue / 1000).toFixed(1)}k</p></div>
+                        <div><p className="text-[10px] text-gray-400">Trend</p><p className="text-sm font-bold text-emerald-500 flex items-center gap-0.5"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" /></svg>{c.trend}%</p></div>
+                      </div>
+                      <div className="border-t border-gray-100 pt-3 space-y-1.5">
+                        <div className="flex items-start gap-1.5"><span className="w-1 h-1 rounded-full bg-emerald-400 mt-1.5 flex-shrink-0" /><p className="text-[11px] text-gray-500 leading-relaxed">{c.insights[0]}</p></div>
+                        <div className="flex items-start gap-1.5"><span className="w-1 h-1 rounded-full bg-emerald-400 mt-1.5 flex-shrink-0" /><p className="text-[11px] text-gray-500 leading-relaxed">{c.insights[1]}</p></div>
+                      </div>
                     </div>
                   );
-                }}
-              />
-              <Scatter
-                data={creativeBubbles.filter(d => d.roas >= 3.5)}
-                fill="#10b981"
-                fillOpacity={0.7}
-                name="High ROAS"
-              />
-              <Scatter
-                data={creativeBubbles.filter(d => d.roas >= 2 && d.roas < 3.5)}
-                fill="#f59e0b"
-                fillOpacity={0.7}
-                name="Medium ROAS"
-              />
-              <Scatter
-                data={creativeBubbles.filter(d => d.roas < 2)}
-                fill="#ef4444"
-                fillOpacity={0.7}
-                name="Low ROAS"
-              />
-              <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-            </ScatterChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Scale Winners + Pause/Refresh */}
-      <div className="grid grid-cols-2 gap-6">
-        {/* Scale Winners */}
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
-              </svg>
-            </span>
-            <h4 className="text-sm font-semibold text-gray-900">Scale Winners</h4>
-          </div>
-          <div className="space-y-4">
-            {scaleWinners.map((c) => (
-              <div key={c.name} className="bg-white rounded-2xl border border-gray-100 p-5">
-                <div className="flex items-center justify-between mb-2">
-                  <h5 className="text-sm font-semibold text-gray-900">{c.name}</h5>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">{c.roas}x ROAS</span>
+                })}
+              </div>
+            </div>
+          )},
+          { id: 'bottom-performing', render: () => (
+            bottomCampaigns.length > 0 ? (
+              <div className="bg-gray-50/60 rounded-xl p-5 border border-gray-100">
+                <div className="flex items-center gap-2 mb-1">
+                  <AlertTriangle className="w-4 h-4 text-red-400" />
+                  <h2 className="text-base font-semibold text-gray-900">Bottom Performing Campaigns</h2>
                 </div>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded">{c.channel}</span>
-                  <span className="text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded">{c.format}</span>
-                </div>
-                <div className="grid grid-cols-4 gap-3 mb-3">
-                  <div>
-                    <p className="text-[10px] text-gray-400">ROAS</p>
-                    <p className="text-sm font-bold text-gray-900">{c.roas}x</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-gray-400">CTR</p>
-                    <p className="text-sm font-bold text-gray-900">{c.ctr}%</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-gray-400">Spend</p>
-                    <p className="text-sm font-bold text-gray-900">{c.spend}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-gray-400">Conversions</p>
-                    <p className="text-sm font-bold text-gray-900">{c.conversions}</p>
-                  </div>
-                </div>
-                <div className="border-t border-gray-100 pt-3">
-                  <div className="flex items-start gap-1.5">
-                    <span className="w-1 h-1 rounded-full bg-emerald-400 mt-1.5 flex-shrink-0" />
-                    <p className="text-[11px] text-gray-500 leading-relaxed">{c.insight}</p>
-                  </div>
+                <p className="text-xs text-gray-500 mb-5">Bottom 3 of 24 active campaigns — candidates for pausing or budget reallocation</p>
+                <div className="grid grid-cols-3 gap-4">
+                  {bottomCampaigns.map((c) => {
+                    const platformInfo = getPlatformLabel(c.platform);
+                    return (
+                      <div key={c.rank + c.name} className="bg-white rounded-2xl border border-gray-100 p-5">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-full bg-red-100 text-red-500 flex items-center justify-center text-xs font-bold">#{c.rank}</span>
+                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1 ${getStatusPillStyle(c.status)}`}>{getStatusIcon(c.status)}{c.status}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {platformInfo && (<span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${platformInfo.bg}`}>{platformInfo.label}</span>)}
+                            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{c.type}</span>
+                          </div>
+                        </div>
+                        <h5 className="text-sm font-semibold text-gray-900 mb-3 leading-snug">{c.name}</h5>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-3">
+                          <div><p className="text-[10px] text-gray-400">ROAS</p><p className="text-sm font-bold text-gray-900">{c.roas.toFixed(1)}x</p></div>
+                          <div><p className="text-[10px] text-gray-400">CPA</p><p className="text-sm font-bold text-gray-900">${c.cpa}</p></div>
+                          <div><p className="text-[10px] text-gray-400">Revenue</p><p className="text-sm font-bold text-gray-900">${(c.revenue / 1000).toFixed(1)}k</p></div>
+                          <div><p className="text-[10px] text-gray-400">Trend</p><p className="text-sm font-bold text-red-500 flex items-center gap-0.5"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>{c.trend}%</p></div>
+                        </div>
+                        <div className="border-t border-gray-100 pt-3 space-y-1.5">
+                          <div className="flex items-start gap-1.5"><span className="w-1 h-1 rounded-full bg-red-400 mt-1.5 flex-shrink-0" /><p className="text-[11px] text-gray-500 leading-relaxed">{c.insights[0]}</p></div>
+                          <div className="flex items-start gap-1.5"><span className="w-1 h-1 rounded-full bg-red-400 mt-1.5 flex-shrink-0" /><p className="text-[11px] text-gray-500 leading-relaxed">{c.insights[1]}</p></div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
+            ) : null
+          )},
+        ], 'campaigns');
+        return (<>
+          {renderInsightCallout('campaigns')}
+          {sections.filter(s => pinnedWidgets.has(s.id)).map(s => <Fragment key={s.id}>{s.render()}</Fragment>)}
+        </>);
+      })()}
 
-        {/* Pause / Refresh */}
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <span className="w-5 h-5 rounded-full bg-red-100 text-red-500 flex items-center justify-center">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-              </svg>
-            </span>
-            <h4 className="text-sm font-semibold text-gray-900">Pause / Refresh</h4>
-          </div>
-          <div className="space-y-4">
-            {pauseRefresh.map((c) => (
-              <div key={c.name} className="bg-white rounded-2xl border border-gray-100 p-5">
-                <div className="flex items-center justify-between mb-2">
-                  <h5 className="text-sm font-semibold text-gray-900">{c.name}</h5>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-500">{c.roas}x ROAS</span>
-                </div>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded">{c.channel}</span>
-                  <span className="text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded">{c.format}</span>
-                </div>
-                <div className="grid grid-cols-4 gap-3 mb-3">
-                  <div>
-                    <p className="text-[10px] text-gray-400">ROAS</p>
-                    <p className="text-sm font-bold text-gray-900">{c.roas}x</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-gray-400">CTR</p>
-                    <p className="text-sm font-bold text-gray-900">{c.ctr}%</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-gray-400">Spend</p>
-                    <p className="text-sm font-bold text-gray-900">{c.spend}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-gray-400">Conversions</p>
-                    <p className="text-sm font-bold text-gray-900">{c.conversions}</p>
-                  </div>
-                </div>
-                <div className="border-t border-gray-100 pt-3">
-                  <div className="flex items-start gap-1.5">
-                    <svg className="w-3.5 h-3.5 text-amber-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                    </svg>
-                    <p className="text-[11px] text-gray-500 leading-relaxed">{c.recommendation}</p>
-                  </div>
+      {/* ── Audience Tab ── */}
+      {activeTab === 'audience' && (() => {
+        const sections = orderSections([
+          { id: 'roas-comparison-spend-revenue', render: () => (
+            <div id="section-audience" className="grid grid-cols-2 gap-6 mb-6">
+              <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                <SectionHeader title="Audience ROAS Comparison" subtitle="Return on ad spend by segment" onAskAI={() => handleChartAskAI('roas-comparison-spend-revenue')} />
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={audienceSpendRevenueData} layout="vertical" barSize={16}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
+                      <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}x`} />
+                      <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={100} />
+                      <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 12 }} formatter={(value: number | undefined) => [`${value ?? 0}x`, 'ROAS']} />
+                      <Bar dataKey="roas" radius={[0, 4, 4, 0]}>
+                        {audienceSpendRevenueData.map((entry) => (
+                          <Cell key={entry.name} fill={entry.roas >= 4 ? '#10b981' : entry.roas >= 2.5 ? '#f59e0b' : '#ef4444'} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
+              <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                <SectionHeader title="Spend vs. Revenue by Audience" subtitle="Investment efficiency across segments" onAskAI={() => handleChartAskAI('roas-comparison-spend-revenue')} />
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={audienceSpendRevenueData} barGap={4} barCategoryGap="25%">
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                      <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#9ca3af' }} axisLine={false} tickLine={false} angle={-20} textAnchor="end" height={50} />
+                      <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                      <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 12 }} formatter={(value: number | undefined) => [`$${(value ?? 0).toLocaleString()}`, '']} />
+                      <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                      <Bar dataKey="spend" name="Spend" fill="#ef4444" radius={[4, 4, 0, 0]} fillOpacity={0.8} />
+                      <Bar dataKey="revenue" name="Revenue" fill="#10b981" radius={[4, 4, 0, 0]} fillOpacity={0.8} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          )},
+          { id: 'audience-performance-cards', render: () => (
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Users className="w-4 h-4 text-blue-500" />
+                <h2 className="text-base font-semibold text-gray-900">Audience Performance Analysis</h2>
+              </div>
+              <p className="text-xs text-gray-500 mb-5">Segment-level performance across all active campaigns and channels</p>
+              <div className="grid grid-cols-4 gap-4">
+                {audienceSegments.map((seg) => {
+                  const roasLevel = seg.roas >= 4.0 ? 'high' : seg.roas >= 2.5 ? 'medium' : 'low';
+                  const trendPositive = seg.trend > 0;
+                  return (
+                    <div key={seg.id} className="bg-white rounded-2xl border border-gray-100 p-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <h5 className="text-sm font-semibold text-gray-900 leading-snug">{seg.demo}</h5>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${roasLevel === 'high' ? 'bg-emerald-50 text-emerald-600' : roasLevel === 'medium' ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-500'}`}>{seg.roas.toFixed(1)}x ROAS</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-3">
+                        <div><p className="text-[10px] text-gray-400">Spend</p><p className="text-sm font-bold text-gray-900">${(seg.spend / 1000).toFixed(1)}k</p></div>
+                        <div><p className="text-[10px] text-gray-400">Revenue</p><p className="text-sm font-bold text-gray-900">${(seg.revenue / 1000).toFixed(1)}k</p></div>
+                        <div><p className="text-[10px] text-gray-400">Conversions</p><p className="text-sm font-bold text-gray-900">{seg.conversions.toLocaleString()}</p></div>
+                        <div><p className="text-[10px] text-gray-400">Trend</p><p className={`text-sm font-bold flex items-center gap-0.5 ${trendPositive ? 'text-emerald-500' : 'text-red-500'}`}><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={trendPositive ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} /></svg>{trendPositive ? '+' : ''}{seg.trend}%</p></div>
+                      </div>
+                      <div className="border-t border-gray-100 pt-3">
+                        <p className="text-[10px] text-gray-400 mb-1">Top Channel: <span className="font-semibold text-gray-700">{seg.topChannel}</span> <span className="text-gray-300">({seg.campaignCount} campaigns)</span></p>
+                        <p className="text-[11px] text-gray-500 leading-relaxed">{seg.insight}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )},
+        ], 'audience');
+        return (<>
+          {renderInsightCallout('audience')}
+          {sections.filter(s => pinnedWidgets.has(s.id)).map(s => <Fragment key={s.id}>{s.render()}</Fragment>)}
+        </>);
+      })()}
 
+      {/* ── Creative Tab ── */}
+      {activeTab === 'creative' && (() => {
+        const sections = orderSections([
+          { id: 'format-fatigue', render: () => (
+            <div id="section-creative" className="grid grid-cols-2 gap-6 mb-6">
+              <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                <SectionHeader title="Performance by Format" subtitle="Average ROAS and CTR by creative type" onAskAI={() => handleChartAskAI('format-fatigue')} />
+                <div className="h-56">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={creativeFormatPerformance} barGap={4} barCategoryGap="30%">
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                      <XAxis dataKey="format" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                      <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}x`} />
+                      <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
+                      <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 12 }} />
+                      <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                      <Bar yAxisId="left" dataKey="avgRoas" name="Avg ROAS" fill="#10b981" radius={[4, 4, 0, 0]} />
+                      <Bar yAxisId="right" dataKey="avgCtr" name="Avg CTR %" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-100">
+                  {creativeFormatPerformance.map((f) => (
+                    <div key={f.format} className="text-center">
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wide">{f.format}</p>
+                      <p className="text-sm font-bold text-gray-900">{f.count} creatives</p>
+                      <p className="text-[10px] text-gray-400">${(f.spend / 1000).toFixed(1)}k spend</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                <SectionHeader title="Creative Fatigue Tracker" subtitle="Lifecycle health across all active creatives" onAskAI={() => handleChartAskAI('format-fatigue')} />
+                <div className="space-y-2.5">
+                  {[...creativeFatigueTimeline].sort((a, b) => b.fatigue - a.fatigue).map((c) => (
+                    <div key={c.name} className="flex items-center gap-3">
+                      <span className="text-[11px] text-gray-600 w-[120px] truncate flex-shrink-0" title={c.name}>{c.name}</span>
+                      <div className="flex-1 h-5 bg-gray-50 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${c.fatigue}%`, backgroundColor: c.status === 'danger' ? '#ef4444' : c.status === 'warning' ? '#f59e0b' : '#10b981' }} />
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <span className={`text-[10px] font-semibold ${c.status === 'danger' ? 'text-red-500' : c.status === 'warning' ? 'text-amber-500' : 'text-emerald-500'}`}>{c.fatigue}%</span>
+                        <span className="text-[10px] text-gray-400">{c.daysActive}d</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-4 mt-4 pt-3 border-t border-gray-100">
+                  <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500" /><span className="text-[10px] text-gray-400">Fresh (&lt;50%)</span></div>
+                  <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-500" /><span className="text-[10px] text-gray-400">Warning (50-69%)</span></div>
+                  <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500" /><span className="text-[10px] text-gray-400">Fatigued (70%+)</span></div>
+                </div>
+              </div>
+            </div>
+          )},
+          { id: 'top-creatives', render: () => (
+            <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
+              <SectionHeader title="Top Performing Creatives" subtitle="Ranked by ROAS" onAskAI={() => handleChartAskAI('top-creatives')} />
+              <div className="grid grid-cols-4 gap-3">
+                {topCreatives.map((cr, i) => (
+                  <div key={cr.name} className="bg-gray-50 rounded-xl px-4 py-3.5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-[9px] font-bold text-gray-500">{i + 1}</span>
+                      <span className="text-[10px] font-medium text-gray-400">{cr.type} · {cr.channel}</span>
+                    </div>
+                    <p className="text-xs font-semibold text-gray-900 mb-2 truncate" title={cr.name}>{cr.name}</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div><div className="text-[9px] text-gray-400">Impr.</div><div className="text-[10px] font-semibold text-gray-900">{cr.impressions}</div></div>
+                      <div><div className="text-[9px] text-gray-400">CTR</div><div className="text-[10px] font-semibold text-gray-900">{cr.ctr}</div></div>
+                      <div><div className="text-[9px] text-gray-400">ROAS</div><div className="text-[10px] font-semibold text-emerald-600">{cr.roas}x</div></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )},
+          { id: 'bubble-chart', render: () => (
+            <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
+              <SectionHeader title="Creative Performance: Volume vs. ROAS" subtitle="Bubble size represents spend allocation" onAskAI={() => handleChartAskAI('bubble-chart')} />
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ScatterChart margin={{ top: 10, right: 30, bottom: 10, left: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="impressions" type="number" name="Impressions" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} label={{ value: 'Impressions (Volume)', position: 'insideBottom', offset: -5, fontSize: 11, fill: '#9ca3af' }} />
+                    <YAxis dataKey="roas" type="number" name="ROAS" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}x`} label={{ value: 'ROAS', angle: -90, position: 'insideLeft', fontSize: 11, fill: '#9ca3af' }} />
+                    <ZAxis dataKey="spend" range={[200, 1200]} name="Spend" />
+                    <Tooltip cursor={{ strokeDasharray: '3 3' }} content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const d = payload[0].payload;
+                      return (
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-lg px-4 py-3 text-xs">
+                          <p className="font-semibold text-gray-900 mb-1">{d.name}</p>
+                          <p className="text-gray-500">Channel: <span className="text-gray-700">{d.channel}</span></p>
+                          <p className="text-gray-500">Impressions: <span className="text-gray-700">{(d.impressions / 1000).toFixed(0)}k</span></p>
+                          <p className="text-gray-500">ROAS: <span className="text-gray-700">{d.roas}x</span></p>
+                          <p className="text-gray-500">Spend: <span className="text-gray-700">${d.spend.toLocaleString()}</span></p>
+                        </div>
+                      );
+                    }} />
+                    <Scatter data={creativeBubbles.filter(d => d.roas >= 3.5)} fill="#10b981" fillOpacity={0.7} name="High ROAS" />
+                    <Scatter data={creativeBubbles.filter(d => d.roas >= 2 && d.roas < 3.5)} fill="#f59e0b" fillOpacity={0.7} name="Medium ROAS" />
+                    <Scatter data={creativeBubbles.filter(d => d.roas < 2)} fill="#ef4444" fillOpacity={0.7} name="Low ROAS" />
+                    <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                  </ScatterChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )},
+          { id: 'scale-pause', render: () => (
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" /></svg>
+                  </span>
+                  <h4 className="text-sm font-semibold text-gray-900">Scale Winners</h4>
+                </div>
+                <div className="space-y-4">
+                  {scaleWinners.map((c) => (
+                    <div key={c.name} className="bg-white rounded-2xl border border-gray-100 p-5">
+                      <div className="flex items-center justify-between mb-2">
+                        <h5 className="text-sm font-semibold text-gray-900">{c.name}</h5>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">{c.roas}x ROAS</span>
+                      </div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded">{c.channel}</span>
+                        <span className="text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded">{c.format}</span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-3 mb-3">
+                        <div><p className="text-[10px] text-gray-400">ROAS</p><p className="text-sm font-bold text-gray-900">{c.roas}x</p></div>
+                        <div><p className="text-[10px] text-gray-400">CTR</p><p className="text-sm font-bold text-gray-900">{c.ctr}%</p></div>
+                        <div><p className="text-[10px] text-gray-400">Spend</p><p className="text-sm font-bold text-gray-900">{c.spend}</p></div>
+                        <div><p className="text-[10px] text-gray-400">Conversions</p><p className="text-sm font-bold text-gray-900">{c.conversions}</p></div>
+                      </div>
+                      <div className="border-t border-gray-100 pt-3">
+                        <div className="flex items-start gap-1.5"><span className="w-1 h-1 rounded-full bg-emerald-400 mt-1.5 flex-shrink-0" /><p className="text-[11px] text-gray-500 leading-relaxed">{c.insight}</p></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="w-5 h-5 rounded-full bg-red-100 text-red-500 flex items-center justify-center">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
+                  </span>
+                  <h4 className="text-sm font-semibold text-gray-900">Pause / Refresh</h4>
+                </div>
+                <div className="space-y-4">
+                  {pauseRefresh.map((c) => (
+                    <div key={c.name} className="bg-white rounded-2xl border border-gray-100 p-5">
+                      <div className="flex items-center justify-between mb-2">
+                        <h5 className="text-sm font-semibold text-gray-900">{c.name}</h5>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-500">{c.roas}x ROAS</span>
+                      </div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded">{c.channel}</span>
+                        <span className="text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded">{c.format}</span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-3 mb-3">
+                        <div><p className="text-[10px] text-gray-400">ROAS</p><p className="text-sm font-bold text-gray-900">{c.roas}x</p></div>
+                        <div><p className="text-[10px] text-gray-400">CTR</p><p className="text-sm font-bold text-gray-900">{c.ctr}%</p></div>
+                        <div><p className="text-[10px] text-gray-400">Spend</p><p className="text-sm font-bold text-gray-900">{c.spend}</p></div>
+                        <div><p className="text-[10px] text-gray-400">Conversions</p><p className="text-sm font-bold text-gray-900">{c.conversions}</p></div>
+                      </div>
+                      <div className="border-t border-gray-100 pt-3">
+                        <div className="flex items-start gap-1.5">
+                          <svg className="w-3.5 h-3.5 text-amber-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+                          <p className="text-[11px] text-gray-500 leading-relaxed">{c.recommendation}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )},
+        ], 'creative');
+        return (<>
+          {renderInsightCallout('creative')}
+          {sections.filter(s => pinnedWidgets.has(s.id)).map(s => <Fragment key={s.id}>{s.render()}</Fragment>)}
+        </>);
+      })()}
+
+      </div>
       </>)}
-
-      </div>
       </div>
 
       {/* Campaign Detail Drawer */}

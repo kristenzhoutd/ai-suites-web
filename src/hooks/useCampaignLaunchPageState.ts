@@ -101,14 +101,44 @@ export function useCampaignLaunchPageState() {
   }, [savedConfigIdFromNav, initFromSavedConfig]);
 
   // Init from program when navigating with programId
-  const programInitRef = useRef(false);
+  const programInitRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!programIdFromNav || programInitRef.current) return;
-    programInitRef.current = true;
+    if (!programIdFromNav) return;
+    // Skip if already initialized for this exact program
+    if (programInitRef.current === programIdFromNav) return;
+    programInitRef.current = programIdFromNav;
+
+    // Reset stale state from any previous program
+    reset();
 
     useProgramStore.getState().setActiveProgram(programIdFromNav);
     const program = useProgramStore.getState().activeProgram;
     if (!program) return;
+
+    // Restore brief data from program snapshot so stepper/header shows correct campaign
+    if (program.briefSnapshot) {
+      try {
+        const briefData = JSON.parse(program.briefSnapshot);
+        useBriefEditorStore.getState().setBriefData(briefData);
+      } catch {
+        // Corrupt snapshot — ignore
+      }
+    }
+
+    // Restore blueprint state from program
+    if (program.blueprintIds.length > 0) {
+      useBlueprintStore.getState().loadBlueprints().then(() => {
+        useBlueprintStore.getState().setHasGeneratedPlan(true);
+        if (program.approvedBlueprintId) {
+          useBlueprintStore.getState().setApprovedBlueprintId(program.approvedBlueprintId);
+          useBlueprintStore.getState().selectBlueprint(program.approvedBlueprintId);
+        }
+      });
+    } else {
+      useBlueprintStore.getState().setHasGeneratedPlan(false);
+      useBlueprintStore.getState().setApprovedBlueprintId(null);
+      useBlueprintStore.getState().selectBlueprint(null);
+    }
 
     const enabledWithConfigs = program.channels.find((ch) => ch.enabled && ch.launchConfigIds.length > 0);
     if (enabledWithConfigs) {
@@ -119,7 +149,7 @@ export function useCampaignLaunchPageState() {
     } else {
       setActiveChannel('meta');
     }
-  }, [programIdFromNav, initFromSavedConfig]);
+  }, [programIdFromNav, initFromSavedConfig, reset]);
 
   // ---- Initialize chat session ----
   useEffect(() => {
