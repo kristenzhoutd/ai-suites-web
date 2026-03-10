@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useChatStore } from '../stores/chatStore'
 
-type ActiveSuite = 'personalization' | 'paid-media' | 'ai-marketing-lab'
+type ActiveSuite = 'personalization' | 'paid-media' | 'ai-marketing-lab' | null
 
 // Routes that belong to each suite
 const personalizationRoutes = ['/chat', '/campaigns', '/campaign-overview', '/ranking', '/briefs', '/pages', '/audiences', '/assets', '/content-spots', '/visual-editor', '/personalization-settings']
@@ -20,7 +20,11 @@ const campaignSubNavItems = [
 const paidMediaRoutes = ['/campaign-chat', '/pm-campaigns', '/unified', '/unified-view', '/reports', '/pm-settings', '/campaign-launch']
 const aiMarketingLabRoutes = ['/ai-marketing-lab']
 
-function detectSuite(pathname: string): ActiveSuite {
+// Global routes that don't belong to any suite
+const globalRoutes = ['/settings']
+
+function detectSuite(pathname: string): ActiveSuite | null {
+  if (globalRoutes.some(r => pathname === r || pathname.startsWith(r + '/'))) return null
   if (aiMarketingLabRoutes.some(r => pathname === r || pathname.startsWith(r + '/'))) return 'ai-marketing-lab'
   if (paidMediaRoutes.some(r => pathname === r || pathname.startsWith(r + '/'))) return 'paid-media'
   return 'personalization'
@@ -125,7 +129,7 @@ export default function Layout() {
     if (detected !== activeSuite) setActiveSuite(detected)
   }, [location.pathname])
 
-  const topNavItems = activeSuite === 'personalization' ? personalizationTopNav : activeSuite === 'paid-media' ? paidMediaTopNav : aiMarketingLabTopNav
+  const topNavItems = activeSuite === 'personalization' ? personalizationTopNav : activeSuite === 'paid-media' ? paidMediaTopNav : activeSuite === 'ai-marketing-lab' ? aiMarketingLabTopNav : []
   const homeRoute = activeSuite === 'personalization' ? '/chat' : activeSuite === 'paid-media' ? '/campaign-chat' : '/ai-marketing-lab'
 
   const filteredParentSegments = useMemo(() => {
@@ -301,7 +305,7 @@ export default function Layout() {
           {/* Suite Title */}
           <div className="flex items-center gap-4 mr-8 window-no-drag">
             <h1 className="text-base font-semibold text-gray-900">
-              {activeSuite === 'personalization' ? 'Personalization' : activeSuite === 'paid-media' ? 'Paid Media' : 'AI Marketing Lab'}
+              {activeSuite === 'personalization' ? 'Personalization' : activeSuite === 'paid-media' ? 'Paid Media' : activeSuite === 'ai-marketing-lab' ? 'AI Marketing Lab' : 'Settings'}
             </h1>
           </div>
 
