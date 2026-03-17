@@ -54,14 +54,14 @@ export default function AIMarketingLabPage() {
   };
 
   return (
-    <div className="h-full overflow-y-auto flex flex-col items-center justify-center">
-      <div className="w-full max-w-4xl mx-auto px-6">
+    <div className="h-full overflow-y-auto flex flex-col items-center justify-center px-4 md:px-0">
+      <div className="w-full max-w-4xl mx-auto px-2 md:px-6">
         {/* Hero */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-light text-gray-900 mb-1" style={{ fontFamily: "'Manrope', sans-serif" }}>
+        <div className="text-center mb-8 md:mb-12">
+          <h1 className="text-2xl md:text-4xl font-light text-gray-900 mb-1" style={{ fontFamily: "'Manrope', sans-serif" }}>
             Let's launch something
           </h1>
-          <div className="flex items-center justify-center gap-2 text-4xl font-bold" style={{ fontFamily: "'Manrope', sans-serif" }}>
+          <div className="flex items-center justify-center gap-2 text-2xl md:text-4xl font-bold" style={{ fontFamily: "'Manrope', sans-serif" }}>
             <span
               className="inline-flex items-center gap-2 transition-all duration-400"
               style={{
@@ -69,11 +69,11 @@ export default function AIMarketingLabPage() {
                 transform: isAnimating ? 'translateY(8px)' : 'translateY(0)',
               }}
             >
-              <img src={currentWord.icon} alt="" className="w-9 h-9" />
+              <img src={currentWord.icon} alt="" className="w-7 h-7 md:w-9 md:h-9" />
               <span style={{ color: currentWord.color }}>{currentWord.word}</span>
             </span>
           </div>
-          <p className="text-sm text-gray-500 mt-4 max-w-lg mx-auto leading-relaxed">
+          <p className="text-xs md:text-sm text-gray-500 mt-3 md:mt-4 max-w-lg mx-auto leading-relaxed px-4">
             Explore a guided AI experience built for enterprise brands.
             No setup. No login. Just choose a goal and see the outcome.
           </p>
@@ -88,7 +88,7 @@ export default function AIMarketingLabPage() {
 
       {/* Start Button */}
       {selectedGoal && (
-        <div className="text-center mt-8">
+        <div className="text-center mt-6 md:mt-8">
           <Button variant="primary" onClick={handleStart}>
             Start guided experience
           </Button>
@@ -96,12 +96,12 @@ export default function AIMarketingLabPage() {
       )}
 
       {/* Trust strip */}
-      <div className="text-center mt-10 mb-6">
-        <div className="inline-flex items-center gap-6 text-[11px] text-gray-400">
+      <div className="text-center mt-8 md:mt-10 mb-6 px-4">
+        <div className="flex flex-col md:flex-row items-center gap-2 md:gap-6 text-[11px] text-gray-400">
           <span>Powered by contextual customer intelligence</span>
-          <span className="w-1 h-1 rounded-full bg-gray-300" />
+          <span className="hidden md:block w-1 h-1 rounded-full bg-gray-300" />
           <span>AI-generated for human review</span>
-          <span className="w-1 h-1 rounded-full bg-gray-300" />
+          <span className="hidden md:block w-1 h-1 rounded-full bg-gray-300" />
           <span>Built on trusted, traceable context</span>
         </div>
       </div>
@@ -157,7 +157,7 @@ function GoalCarousel({
     >
       <div
         ref={scrollRef}
-        className="flex gap-4 overflow-x-auto scrollbar-hide pb-2"
+        className="flex gap-3 md:gap-4 overflow-x-auto scrollbar-hide pb-2 px-2"
         style={{ scrollBehavior: 'auto' }}
       >
         {items.map((g, index) => {
@@ -167,7 +167,7 @@ function GoalCarousel({
             <button
               key={`${g.id}-${index}`}
               onClick={() => onSelect(g.id)}
-              className={`flex-shrink-0 w-72 p-5 rounded-2xl text-left transition-all cursor-pointer ${
+              className={`flex-shrink-0 w-60 md:w-72 p-4 md:p-5 rounded-2xl text-left transition-all cursor-pointer ${
                 isSelected
                   ? 'border-2 border-blue-400 bg-blue-50/80 shadow-md'
                   : 'border border-white/60 backdrop-blur-sm bg-white/10 shadow-[0_2px_4px_rgba(0,0,0,0.02),0_8px_24px_rgba(0,0,0,0.04)] hover:bg-white/40 hover:shadow-[0_4px_8px_rgba(0,0,0,0.03),0_12px_32px_rgba(0,0,0,0.06)]'
@@ -180,7 +180,7 @@ function GoalCarousel({
                   </svg>
                 </div>
               )}
-              <Icon className={`w-6 h-6 mb-3 ${isSelected ? 'text-blue-600' : 'text-gray-400'}`} />
+              <Icon className={`w-5 h-5 md:w-6 md:h-6 mb-2 md:mb-3 ${isSelected ? 'text-blue-600' : 'text-gray-400'}`} />
               <div className={`font-medium text-sm mb-1 ${isSelected ? 'text-blue-900' : 'text-gray-900'}`}>{g.label}</div>
               <div className="text-xs text-gray-500 leading-relaxed">{g.description}</div>
             </button>

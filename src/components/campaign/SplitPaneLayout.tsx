@@ -83,8 +83,8 @@ export default function SplitPaneLayout({
             className="w-[6px] h-full cursor-col-resize flex items-center justify-center group"
           >
             <div
-              className={`w-1 rounded-sm transition-all duration-200 group-hover:bg-[#6F2EFF] group-hover:h-16 ${
-                isDragging ? 'bg-[#6F2EFF] h-16' : 'bg-[#DCE1EA] h-10'
+              className={`w-1 rounded-sm transition-all duration-200 group-hover:bg-black group-hover:h-16 ${
+                isDragging ? 'bg-black h-16' : 'bg-[#DCE1EA] h-10'
               }`}
             />
           </div>
