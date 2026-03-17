@@ -4,7 +4,6 @@
  */
 
 import { Router } from 'express';
-import https from 'node:https';
 import { loadSettings } from '../services/storage.js';
 
 export const segmentsRouter = Router();
@@ -18,43 +17,21 @@ function getTdxApiKey(req: any): string {
 }
 
 function getTdxEndpoint(): string {
-  return loadSettings().tdxEndpoint || 'https://api.treasuredata.com';
+  return loadSettings().tdxEndpoint || 'https://api-cdp.treasuredata.com';
 }
 
-interface TdApiResponse {
-  statusCode: number;
-  body: string;
-}
-
-function tdApiGet(endpoint: string, apiKey: string, baseUrl: string): Promise<TdApiResponse> {
-  return new Promise((resolve, reject) => {
-    const url = new URL(endpoint, baseUrl);
-    const options: https.RequestOptions = {
-      hostname: url.hostname,
-      port: url.port || 443,
-      path: url.pathname + url.search,
-      method: 'GET',
-      headers: {
-        Authorization: `TD1 ${apiKey}`,
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-    };
-
-    const req = https.request(options, (res) => {
-      const chunks: Buffer[] = [];
-      res.on('data', (chunk: Buffer) => chunks.push(chunk));
-      res.on('end', () => {
-        resolve({
-          statusCode: res.statusCode || 500,
-          body: Buffer.concat(chunks).toString('utf-8'),
-        });
-      });
-    });
-
-    req.on('error', (err) => reject(err));
-    req.end();
+async function tdApiGet(endpoint: string, apiKey: string, baseUrl: string): Promise<{ statusCode: number; body: string }> {
+  const url = new URL(endpoint, baseUrl);
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: {
+      Authorization: `TD1 ${apiKey}`,
+      Accept: 'application/json',
+    },
+    redirect: 'follow',
   });
+  const body = await response.text();
+  return { statusCode: response.status, body };
 }
 
 function formatPopulation(population: number | null | undefined): string | null {
