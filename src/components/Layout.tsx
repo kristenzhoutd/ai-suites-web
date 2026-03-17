@@ -190,27 +190,27 @@ export default function Layout() {
       <div className="flex flex-col h-screen bg-white">
         {/* Top bar */}
         <div
-          className="h-14 px-6 flex items-center flex-shrink-0 border-b border-gray-100 bg-white window-drag"
+          className="h-14 px-4 md:px-6 flex items-center flex-shrink-0 border-b border-gray-100 bg-white window-drag"
         >
           <Link
             to="/ai-marketing-lab"
             onClick={(e) => { e.preventDefault(); navigate('/ai-marketing-lab'); }}
-            className="flex items-center gap-3 window-no-drag cursor-pointer hover:opacity-80 transition-opacity"
+            className="flex items-center gap-2 md:gap-3 window-no-drag cursor-pointer hover:opacity-80 transition-opacity min-w-0"
           >
-            <img src="/td-icon.svg" alt="Treasure AI" className="w-8 h-8" />
-            <span className="text-sm font-semibold text-gray-900" style={{ fontFamily: "'Manrope', sans-serif" }}>
+            <img src="/td-icon.svg" alt="Treasure AI" className="w-7 h-7 md:w-8 md:h-8 flex-shrink-0" />
+            <span className="text-xs md:text-sm font-semibold text-gray-900 truncate" style={{ fontFamily: "'Manrope', sans-serif" }}>
               Treasure AI Experience Lab
             </span>
           </Link>
           <div className="flex-1" />
-          <div className="flex items-center gap-2 text-[11px] text-gray-400 mr-6 window-no-drag">
+          <div className="hidden md:flex items-center gap-2 text-[11px] text-gray-400 mr-6 window-no-drag">
             Powered by Treasure AI
           </div>
           <a
-            href="#talk"
-            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-gray-700 border border-gray-200 rounded-full hover:bg-gray-50 transition-colors window-no-drag"
+            href="#book"
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 md:px-4 py-1.5 text-[11px] md:text-xs font-semibold text-white bg-gray-900 rounded-full hover:bg-gray-800 transition-colors shadow-sm window-no-drag"
           >
-            Talk to our team
+            Book a walkthrough
           </a>
         </div>
         {/* Content */}

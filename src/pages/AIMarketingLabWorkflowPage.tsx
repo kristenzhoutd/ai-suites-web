@@ -58,18 +58,27 @@ export default function AIMarketingLabWorkflowPage() {
   const {
     goal, industry, scenario, inputs, currentStep,
     currentInputStep, generationPhase, output,
-    activePanelTab,
     setIndustry, setScenario, setInput, setCurrentStep,
     setCurrentInputStep, startGeneration, setGenerationPhase,
-    finishGeneration, setActivePanelTab, resetSession,
+    finishGeneration, resetSession,
   } = store;
 
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [showCTA, setShowCTA] = useState(false);
   const [visibleOutputSections, setVisibleOutputSections] = useState(0);
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileView, setMobileView] = useState<'chat' | 'output'>('output');
+  const [isMobile, setIsMobile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasOutput = currentStep === 'output' && !!output;
+
+  // Detect mobile/tablet
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   // Redirect if no goal selected
   useEffect(() => {
@@ -275,10 +284,26 @@ export default function AIMarketingLabWorkflowPage() {
     }
   };
 
-  const handleRestart = () => {
-    resetSession();
-    navigate('/ai-marketing-lab');
-  };
+  const handleExploreAnother = useCallback(() => {
+    // Clear output and scenario, reset to scenario step
+    useExperienceLabStore.setState({
+      output: null, scenario: '', inputs: {},
+      currentInputStep: 0, currentStep: 'scenario',
+    });
+    setShowCTA(false);
+    setVisibleOutputSections(0);
+    setCollapsed(false);
+    // Remove old output/cta messages and add scenario prompt immediately
+    setMessages(prev => [
+      ...prev.filter(m => m.type !== 'output-ready' && m.type !== 'cta' && m.role !== 'thinking'),
+      {
+        id: `ai-${Date.now()}`,
+        role: 'ai' as const,
+        content: 'Would you like to try a different scenario?',
+        type: 'scenario-cards' as const,
+      },
+    ]);
+  }, []);
 
   // ============================================================
   // Input validation
@@ -308,63 +333,103 @@ export default function AIMarketingLabWorkflowPage() {
       />
 
       {/* ── Main Layout ── */}
-      <div className="flex-1 overflow-hidden p-4 pt-0">
-        <div className="h-full flex rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden bg-white">
+      <div className="flex-1 overflow-hidden p-2 md:p-4 pt-0">
+        <div className="h-full flex flex-col md:flex-row rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden bg-white">
           {hasOutput ? (
-            /* Post-output: SplitPaneLayout with chat (left) + output (right) */
-            <SplitPaneLayout
-              initialLeftWidth={35}
-              collapsed={collapsed}
-              onToggleCollapse={() => setCollapsed(false)}
-            >
-              {/* Left: Chat */}
-              <ChatPanel
-                messages={messages}
-                currentStep={currentStep}
-                lastAIMessage={lastAIMessage}
-                industry={industry}
-                scenario={scenario}
-                inputs={inputs}
-                inputSteps={inputSteps}
-                currentInputStep={currentInputStep}
-                generationPhase={generationPhase}
-                showCTA={showCTA}
-                onIndustrySelect={handleIndustrySelect}
-                onScenarioSelect={handleScenarioSelect}
-                onInputSelect={handleInputSelect}
-                onInputContinue={handleInputContinue}
-                canContinueInput={canContinueInput()}
-                onRestart={handleRestart}
-                onExploreAnother={() => {
-                  setCurrentStep('scenario');
-                  setShowCTA(false);
-                  addAIMessage('Would you like to try a different scenario?', 'scenario-cards');
-                }}
-                messagesEndRef={messagesEndRef}
-                showCollapse
-                onCollapse={() => setCollapsed(true)}
-              />
-              {/* Right: Output */}
-              <div className="h-full flex flex-col bg-white">
-                <div className="flex-1 overflow-y-auto p-6">
-                  <OutputDisplay output={output!} visibleSections={visibleOutputSections} />
+            isMobile ? (
+              /* Mobile post-output: tab toggle between chat and output */
+              <>
+                <div className="flex shrink-0 border-b border-gray-100">
+                  <button
+                    onClick={() => setMobileView('chat')}
+                    className={`flex-1 py-2.5 text-xs font-medium text-center transition-colors cursor-pointer ${
+                      mobileView === 'chat' ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-400'
+                    }`}
+                  >
+                    Chat
+                  </button>
+                  <button
+                    onClick={() => setMobileView('output')}
+                    className={`flex-1 py-2.5 text-xs font-medium text-center transition-colors cursor-pointer ${
+                      mobileView === 'output' ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-400'
+                    }`}
+                  >
+                    Output
+                  </button>
                 </div>
-                {visibleOutputSections >= 7 && (
-                  <div className="shrink-0 px-4 pb-4">
-                    <FloatingContextCard
-                      goal={goal}
-                      industry={industry}
-                      scenario={scenario}
-                      inputs={inputs}
-                      inputSteps={inputSteps}
-                      output={output!}
-                      activeTab={activePanelTab}
-                      onTabChange={setActivePanelTab}
-                    />
+                {mobileView === 'chat' ? (
+                  <ChatPanel
+                    messages={messages}
+                    currentStep={currentStep}
+                    lastAIMessage={lastAIMessage}
+                    industry={industry}
+                    scenario={scenario}
+                    inputs={inputs}
+                    inputSteps={inputSteps}
+                    currentInputStep={currentInputStep}
+                    generationPhase={generationPhase}
+                    onIndustrySelect={handleIndustrySelect}
+                    onScenarioSelect={handleScenarioSelect}
+                    onInputSelect={handleInputSelect}
+                    onInputContinue={handleInputContinue}
+                    canContinueInput={canContinueInput()}
+                    onExploreAnother={handleExploreAnother}
+                    messagesEndRef={messagesEndRef}
+                  />
+                ) : (
+                  <div className="flex-1 relative overflow-hidden bg-[#F7F8FB]">
+                    <div className="h-full overflow-y-auto p-4 pb-20">
+                      <OutputDisplay output={output!} visibleSections={visibleOutputSections} />
+                    </div>
+                    {visibleOutputSections >= 7 && (
+                      <div className="absolute bottom-3 right-3 z-10">
+                        <FloatingContextCard output={output!} />
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
-            </SplitPaneLayout>
+              </>
+            ) : (
+              /* Desktop post-output: SplitPaneLayout */
+              <SplitPaneLayout
+                initialLeftWidth={35}
+                collapsed={collapsed}
+                onToggleCollapse={() => setCollapsed(false)}
+              >
+                {/* Left: Chat */}
+                <ChatPanel
+                  messages={messages}
+                  currentStep={currentStep}
+                  lastAIMessage={lastAIMessage}
+                  industry={industry}
+                  scenario={scenario}
+                  inputs={inputs}
+                  inputSteps={inputSteps}
+                  currentInputStep={currentInputStep}
+                  generationPhase={generationPhase}
+                  onIndustrySelect={handleIndustrySelect}
+                  onScenarioSelect={handleScenarioSelect}
+                  onInputSelect={handleInputSelect}
+                  onInputContinue={handleInputContinue}
+                  canContinueInput={canContinueInput()}
+                  onExploreAnother={handleExploreAnother}
+                  messagesEndRef={messagesEndRef}
+                  showCollapse
+                  onCollapse={() => setCollapsed(true)}
+                />
+                {/* Right: Output */}
+                <div className="h-full relative bg-[#F7F8FB]">
+                  <div className="h-full overflow-y-auto p-6 pb-20">
+                    <OutputDisplay output={output!} visibleSections={visibleOutputSections} />
+                  </div>
+                  {visibleOutputSections >= 7 && (
+                    <div className="absolute bottom-4 right-4 z-10">
+                      <FloatingContextCard output={output!} />
+                    </div>
+                  )}
+                </div>
+              </SplitPaneLayout>
+            )
           ) : (
             /* Pre-output: Full-width chat */
             <ChatPanel
@@ -377,18 +442,12 @@ export default function AIMarketingLabWorkflowPage() {
               inputSteps={inputSteps}
               currentInputStep={currentInputStep}
               generationPhase={generationPhase}
-              showCTA={showCTA}
               onIndustrySelect={handleIndustrySelect}
               onScenarioSelect={handleScenarioSelect}
               onInputSelect={handleInputSelect}
               onInputContinue={handleInputContinue}
               canContinueInput={canContinueInput()}
-              onRestart={handleRestart}
-              onExploreAnother={() => {
-                setCurrentStep('scenario');
-                setShowCTA(false);
-                addAIMessage('Would you like to try a different scenario?', 'scenario-cards');
-              }}
+              onExploreAnother={handleExploreAnother}
               messagesEndRef={messagesEndRef}
             />
           )}
@@ -403,9 +462,9 @@ export default function AIMarketingLabWorkflowPage() {
 // ============================================================
 function ChatPanel({
   messages, currentStep, lastAIMessage, industry, scenario, inputs,
-  inputSteps, currentInputStep, generationPhase, showCTA,
+  inputSteps, currentInputStep, generationPhase,
   onIndustrySelect, onScenarioSelect, onInputSelect, onInputContinue,
-  canContinueInput, onRestart, onExploreAnother, messagesEndRef,
+  canContinueInput, onExploreAnother, messagesEndRef,
   showCollapse, onCollapse,
 }: {
   messages: ConversationMessage[];
@@ -417,13 +476,11 @@ function ChatPanel({
   inputSteps: InputStep[];
   currentInputStep: number;
   generationPhase: number;
-  showCTA: boolean;
   onIndustrySelect: (id: string) => void;
   onScenarioSelect: (id: string) => void;
   onInputSelect: (stepId: string, value: string | string[]) => void;
   onInputContinue: () => void;
   canContinueInput: boolean;
-  onRestart: () => void;
   onExploreAnother: () => void;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   showCollapse?: boolean;
@@ -448,11 +505,32 @@ function ChatPanel({
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-5 md:gap-6">
         {messages.map((msg) => (
           <div key={msg.id}>
-            {msg.type === 'cta' && currentStep === 'output' && showCTA ? (
-              <CTACards onRestart={onRestart} onExploreAnother={onExploreAnother} />
+            {msg.type === 'cta' && currentStep === 'output' ? (
+              <div className="animate-fade-in px-1 mt-2 space-y-3 max-w-sm">
+                <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                  <p className="text-xs text-gray-600 mb-2.5">Send a copy of this output to your inbox</p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="email"
+                      placeholder="Work email"
+                      className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                    />
+                    <button className="px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors cursor-pointer flex-shrink-0">
+                      Send
+                    </button>
+                  </div>
+                </div>
+                <button
+                  onClick={onExploreAnother}
+                  className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  Explore another scenario
+                </button>
+              </div>
             ) : msg.role === 'thinking' ? (
               <div className="flex justify-start animate-fade-in">
                 <div className="flex items-center gap-1.5 px-4 py-3">
@@ -529,8 +607,8 @@ function HorizontalStepper({
   onStepClick: (step: number) => void;
 }) {
   return (
-    <div className="px-4 pt-3 pb-2">
-      <div className="flex items-center justify-center gap-2">
+    <div className="px-2 md:px-4 pt-3 pb-2">
+      <div className="flex items-center justify-center gap-1 md:gap-2">
         {EXPERIENCE_STEPS.map((step, idx) => {
           const isActive = currentStep === step.id;
           const isCompleted = currentStep > step.id;
@@ -541,7 +619,7 @@ function HorizontalStepper({
               <button
                 onClick={() => isClickable && onStepClick(step.id)}
                 disabled={!isClickable && !isActive}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors ${
+                className={`flex items-center gap-1.5 md:gap-2 px-1.5 md:px-3 py-1.5 rounded-lg transition-colors ${
                   isActive
                     ? 'bg-black/5 cursor-default'
                     : isClickable
@@ -550,7 +628,7 @@ function HorizontalStepper({
                 }`}
               >
                 <span
-                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium transition-transform ${
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0 transition-transform ${
                     isCompleted
                       ? 'bg-[#34D399] text-white'
                       : isActive
@@ -567,7 +645,7 @@ function HorizontalStepper({
                   )}
                 </span>
                 <span
-                  className={`text-sm transition-colors ${
+                  className={`hidden md:inline text-sm transition-colors ${
                     isActive
                       ? 'text-black font-medium'
                       : isClickable
@@ -579,7 +657,7 @@ function HorizontalStepper({
                 </span>
               </button>
               {idx < EXPERIENCE_STEPS.length - 1 && (
-                <svg className="w-4 h-4 mx-1 flex-shrink-0 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 md:w-4 md:h-4 mx-0.5 md:mx-1 flex-shrink-0 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               )}
@@ -597,7 +675,7 @@ function HorizontalStepper({
 function IndustryCards({ industry, onSelect }: { industry: string; onSelect: (id: string) => void }) {
   return (
     <div className="max-w-xl">
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {industries.filter(i => i.enabled).map((item) => {
           const Icon = industryIcons[item.icon] || ShoppingBag;
           const isSelected = industry === item.id;
@@ -637,7 +715,7 @@ function IndustryCards({ industry, onSelect }: { industry: string; onSelect: (id
 // ============================================================
 function ScenarioCards({ scenario, onSelect }: { scenario: string; onSelect: (id: string) => void }) {
   return (
-    <div className="grid grid-cols-2 gap-3 max-w-xl">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-xl">
       {scenarios.map((item) => {
         const isSelected = scenario === item.id;
         return (
@@ -703,7 +781,7 @@ function InputChips({
   if (hasDescriptions) {
     return (
       <div className="max-w-xl">
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {step.options.map((option) => {
             const isSelected = selectedArr.includes(option.id);
             return (
@@ -817,72 +895,6 @@ function GenerationProgress({ phase }: { phase: number }) {
 }
 
 // ============================================================
-// CTA Cards (left chat side, after output)
-// ============================================================
-function CTACards({
-  onRestart,
-  onExploreAnother,
-}: {
-  onRestart: () => void;
-  onExploreAnother: () => void;
-}) {
-  return (
-    <div className="ml-7 space-y-3 max-w-md">
-      {/* Primary CTA */}
-      <div className="bg-gradient-to-br from-gray-50 to-blue-50/30 border border-gray-200 rounded-2xl p-5">
-        <h3 className="text-sm font-semibold text-gray-900 mb-1" style={{ fontFamily: "'Manrope', sans-serif" }}>
-          See this tailored to your business
-        </h3>
-        <p className="text-xs text-gray-500 mb-4">
-          Bring your real goals, channels, and data context into a guided Treasure AI session.
-        </p>
-        <div className="flex items-center gap-2">
-          <a
-            href="#book"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-full text-xs font-semibold hover:bg-gray-800 transition-colors shadow-lg shadow-gray-900/20"
-          >
-            Book a tailored walkthrough
-            <ArrowRight className="w-3.5 h-3.5" />
-          </a>
-          <a
-            href="#talk"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 border border-gray-300 text-gray-700 rounded-full text-xs font-medium hover:bg-gray-50 transition-colors"
-          >
-            Talk to our team
-          </a>
-        </div>
-      </div>
-
-      {/* Secondary actions */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={onExploreAnother}
-          className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
-        >
-          <RotateCcw className="w-3 h-3" />
-          Explore another scenario
-        </button>
-      </div>
-
-      {/* Lead capture */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4">
-        <p className="text-xs text-gray-500 mb-2">Want this sample output sent to your inbox?</p>
-        <div className="flex items-center gap-2">
-          <input
-            type="email"
-            placeholder="Work email"
-            className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-          <button className="px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors cursor-pointer">
-            Send
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ============================================================
 // Output Display (right panel)
 // ============================================================
 function OutputDisplay({ output, visibleSections }: { output: OutputData; visibleSections: number }) {
@@ -893,7 +905,7 @@ function OutputDisplay({ output, visibleSections }: { output: OutputData; visibl
     <>
       {/* Summary Banner */}
       <div className={sectionClass(0)}>
-        <div className="border border-gray-200 rounded-2xl p-5 mb-5 bg-white shadow-sm">
+        <div className="border border-gray-200/60 rounded-2xl p-5 mb-5 bg-white shadow-sm">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0 mt-0.5">
               <Sparkles className="w-4 h-4 text-blue-500" />
@@ -932,7 +944,7 @@ function OutputDisplay({ output, visibleSections }: { output: OutputData; visibl
         <OutputSection title="Audience Segments" icon={<Target className="w-4 h-4" />}>
           <div className="space-y-2">
             {output.audienceCards.map((card, i) => (
-              <div key={i} className="border border-gray-100 rounded-xl p-3.5 bg-white">
+              <div key={i} className="border border-gray-100 rounded-xl p-3.5 bg-gray-50/60">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="font-semibold text-sm text-gray-900">{card.name}</span>
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
@@ -956,7 +968,7 @@ function OutputDisplay({ output, visibleSections }: { output: OutputData; visibl
         <OutputSection title="Channel Strategy" icon={<Send className="w-4 h-4" />}>
           <div className="space-y-2">
             {output.channelStrategy.map((ch, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 bg-white border border-gray-100 rounded-lg">
+              <div key={i} className="flex items-start gap-3 p-3 bg-gray-50/60 border border-gray-100 rounded-lg">
                 <div className="flex-shrink-0 w-20">
                   <span className="text-sm font-semibold text-gray-900">{ch.channel}</span>
                 </div>
@@ -975,7 +987,7 @@ function OutputDisplay({ output, visibleSections }: { output: OutputData; visibl
         <OutputSection title={output.scenarioCore.title} icon={<Sparkles className="w-4 h-4" />}>
           <div className="space-y-2.5">
             {output.scenarioCore.sections.map((section, i) => (
-              <div key={i} className="bg-white border border-gray-100 rounded-lg p-3.5">
+              <div key={i} className="bg-gray-50/60 border border-gray-100 rounded-lg p-3.5">
                 <h4 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{section.label}</h4>
                 <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{section.content}</div>
               </div>
@@ -987,9 +999,9 @@ function OutputDisplay({ output, visibleSections }: { output: OutputData; visibl
       {/* KPI Framework */}
       <div className={sectionClass(5)}>
         <OutputSection title="KPI Framework" icon={<TrendingUp className="w-4 h-4" />}>
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
             {output.kpiFramework.map((kpi, i) => (
-              <div key={i} className="bg-white border border-gray-100 rounded-xl p-3.5">
+              <div key={i} className="bg-gray-50/60 border border-gray-100 rounded-xl p-3.5">
                 <div className={`text-[10px] font-semibold uppercase tracking-wider mb-1 ${
                   kpi.type === 'Primary' ? 'text-blue-600' :
                   kpi.type === 'Secondary' ? 'text-indigo-500' :
@@ -1011,7 +1023,7 @@ function OutputDisplay({ output, visibleSections }: { output: OutputData; visibl
         <OutputSection title="Recommended Next Actions" icon={<ArrowRight className="w-4 h-4" />}>
           <div className="space-y-1.5">
             {output.nextActions.map((action, i) => (
-              <div key={i} className="flex items-start gap-3 p-2.5 bg-white border border-gray-100 rounded-lg">
+              <div key={i} className="flex items-start gap-3 p-2.5 bg-gray-50/60 border border-gray-100 rounded-lg">
                 <span className={`flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full mt-0.5 ${
                   action.priority === 'Do now' ? 'bg-green-50 text-green-700' :
                   action.priority === 'Test next' ? 'bg-blue-50 text-blue-700' :
@@ -1044,7 +1056,7 @@ function OutputSection({ title, icon, children }: { title: string; icon: React.R
         <div className="text-gray-400">{icon}</div>
         <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wider">{title}</h3>
       </div>
-      <div className="bg-gray-50/80 rounded-xl p-4">
+      <div className="bg-white rounded-xl p-4 border border-gray-200/60 shadow-sm">
         {children}
       </div>
     </div>
@@ -1055,121 +1067,85 @@ function OutputSection({ title, icon, children }: { title: string; icon: React.R
 // Floating Context Card (bottom of right output panel)
 // ============================================================
 function FloatingContextCard({
-  goal, industry, scenario, inputs, inputSteps, output, activeTab, onTabChange,
+  output,
 }: {
-  goal: string;
-  industry: string;
-  scenario: string;
-  inputs: Record<string, string | string[]>;
-  inputSteps: InputStep[];
   output: OutputData;
-  activeTab: string;
-  onTabChange: (tab: string) => void;
 }) {
-  const tabs = [
-    { id: 'why', label: 'Why this' },
-    { id: 'impact', label: 'Impact' },
-    { id: 'changed', label: 'What changed' },
-    { id: 'treasure', label: 'Treasure AI' },
-  ];
+  const [isExpanded, setIsExpanded] = useState(true);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden">
-      {/* Your Selections */}
-      <div className="px-5 pt-4 pb-3 border-b border-gray-100 bg-gray-50/40">
-        <h4 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Your Selections</h4>
-        <div className="flex flex-wrap gap-x-4 gap-y-1">
-          <div className="text-[11px]">
-            <span className="text-gray-400">Goal:</span>{' '}
-            <span className="text-gray-700 font-medium">{goals.find(g => g.id === goal)?.label}</span>
-          </div>
-          <div className="text-[11px]">
-            <span className="text-gray-400">Industry:</span>{' '}
-            <span className="text-gray-700 font-medium">{industries.find(i => i.id === industry)?.label}</span>
-          </div>
-          <div className="text-[11px]">
-            <span className="text-gray-400">Scenario:</span>{' '}
-            <span className="text-gray-700 font-medium">{scenarios.find(s => s.id === scenario)?.label}</span>
-          </div>
-          {inputSteps.slice(0, 2).map(step => {
-            const val = inputs[step.id];
-            const display = Array.isArray(val) ? val.join(', ') : val;
-            if (!display) return null;
-            return (
-              <div key={step.id} className="text-[11px]">
-                <span className="text-gray-400 capitalize">{step.id.replace(/-/g, ' ')}:</span>{' '}
-                <span className="text-gray-700 font-medium capitalize">{String(display).replace(/-/g, ' ')}</span>
-              </div>
-            );
-          })}
+    <div className="border border-gray-200 rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.1)] overflow-hidden bg-white w-full max-w-sm">
+      {/* Header bar — always visible */}
+      <div className="flex items-center px-5 py-3">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <Sparkles className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
+          <span className="text-xs font-semibold text-gray-700">Treasure AI Impact</span>
         </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex border-b border-gray-100 px-3">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => onTabChange(tab.id)}
-            className={`flex-1 text-center py-2 text-[11px] font-medium transition-colors cursor-pointer ${
-              activeTab === tab.id
-                ? 'text-gray-900 border-b-2 border-gray-900'
-                : 'text-gray-400 hover:text-gray-600'
-            }`}
+        <div className="flex-1" />
+        {!isExpanded && (
+          <a
+            href="#book"
+            className="inline-flex items-center px-3.5 py-1.5 bg-gray-900 text-white rounded-full text-[11px] font-semibold hover:bg-gray-800 transition-colors shadow-sm mr-2 flex-shrink-0"
           >
-            {tab.label}
-          </button>
-        ))}
+            Book a walkthrough
+          </a>
+        )}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-6 h-6 flex items-center justify-center cursor-pointer hover:bg-black/5 rounded transition-colors flex-shrink-0 ml-2"
+        >
+          <svg
+            className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isExpanded ? '' : 'rotate-180'}`}
+            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
       </div>
 
-      {/* Tab Content — all panels rendered in same grid cell so height = tallest */}
-      <div className="px-5 py-4">
-        <div className="grid">
-          {/* Why */}
-          <div className={`col-start-1 row-start-1 transition-opacity duration-200 ${activeTab === 'why' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-            <p className="text-xs text-gray-600 leading-relaxed">
-              {output.insightPanel.whyThisRecommendation}
-            </p>
-          </div>
-          {/* Impact */}
-          <div className={`col-start-1 row-start-1 transition-opacity duration-200 ${activeTab === 'impact' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-            <div className="space-y-2">
-              {output.insightPanel.businessImpact.map((item, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <TrendingUp className="w-3 h-3 text-green-500 flex-shrink-0 mt-0.5" />
-                  <span className="text-xs text-gray-600">{item}</span>
-                </div>
-              ))}
+      {/* Collapsible content */}
+      <div
+        className={`transition-all duration-300 ease-in-out overflow-hidden ${
+          isExpanded ? 'max-h-[700px] opacity-100' : 'max-h-0 opacity-0'
+        }`}
+      >
+        {/* Hero section */}
+        <div className="mx-4 rounded-xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #f5f3f0 0%, #eeedf5 50%, #f0eff8 100%)' }}>
+          <div className="flex items-start p-5">
+            <div className="flex-1 min-w-0">
+              <div className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-medium text-gray-600 mb-3" style={{ background: 'rgba(255,255,255,0.7)' }}>
+                Tailored for your scenario
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-1" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                See this in action
+              </h3>
+              <p className="text-xs text-gray-500 mb-3">with your real data and goals</p>
+              <a
+                href="#book"
+                className="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-lg text-xs font-semibold hover:bg-gray-800 transition-colors"
+              >
+                Book a walkthrough
+              </a>
             </div>
-          </div>
-          {/* What changed */}
-          <div className={`col-start-1 row-start-1 transition-opacity duration-200 ${activeTab === 'changed' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-            <div className="space-y-2">
-              {output.insightPanel.whatChanged.map((item, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0 mt-1" />
-                  <span className="text-xs text-gray-600">{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          {/* Treasure AI */}
-          <div className={`col-start-1 row-start-1 transition-opacity duration-200 ${activeTab === 'treasure' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-            <div className="space-y-2 mb-3">
-              {output.insightPanel.howTreasureHelps.map((item, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <Shield className="w-3 h-3 text-indigo-500 flex-shrink-0 mt-0.5" />
-                  <span className="text-xs text-gray-600">{item}</span>
-                </div>
-              ))}
-            </div>
-            <div className="p-3 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-lg">
-              <p className="text-[11px] text-gray-600 leading-relaxed">
-                Treasure AI is the Agentic Experience Platform that unifies customer context, governs AI-driven decisions, and orchestrates action across your marketing stack.
-              </p>
-            </div>
+            <img src="/icons/td-avatar.png" alt="" className="flex-shrink-0 w-14 h-14 ml-3" />
           </div>
         </div>
+
+        {/* Impact list */}
+        <div className="px-5 pt-4 pb-2">
+          <div className="space-y-3">
+            {output.insightPanel.businessImpact.slice(0, 3).map((item, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'rgba(52,211,153,0.1)' }}>
+                  <TrendingUp className="w-3 h-3 text-emerald-500" />
+                </div>
+                <span className="text-xs text-gray-700 leading-relaxed">{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="h-3" />
       </div>
     </div>
   );
