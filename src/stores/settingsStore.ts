@@ -55,9 +55,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     // Skip if already loaded or currently loading
     if (get().parentSegments.length > 0 || get().isLoadingParentSegments) return;
 
-    // Guard: personalizationStudio API may not be available outside Electron
-    const api = window.aiSuites?.settings;
-    if (!api) {
+    const api = (window as any).aiSuites?.settings;
+    if (!api?.parentSegments) {
       set({ parentSegmentError: 'Parent segments API is not available', isLoadingParentSegments: false });
       return;
     }
