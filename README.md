@@ -88,10 +88,6 @@ docker build -t ai-suites-web .
 docker run -p 3001:3001 ai-suites-web
 ```
 
-### Vercel (Serverless)
-
-A `vercel.json` is included for serverless deployment. Note: some features (Claude Agent SDK subprocess, persistent storage) have limitations in serverless mode.
-
 ## Syncing from Desktop
 
 The frontend code is shared with the desktop app. To sync the latest UI changes:
