@@ -4,6 +4,7 @@ import { Panel, Group, Separator } from 'react-resizable-panels';
 import type { Spot, SavedPage } from '../types/page';
 import { usePageStore } from '../stores/pageStore';
 import { useChatStore } from '../stores/chatStore';
+import { isElectron } from '../services/backend';
 
 // Prototype demo data
 const DEMO_URL = 'https://www.treasureapparel.com';
@@ -627,7 +628,7 @@ export default function PageEditorPage() {
           {/* Left - Preview */}
           <Panel defaultSize={65} minSize={30}>
             <div className="h-full py-4 px-4">
-          <div className="h-full bg-[#fafbfc] rounded-xl flex flex-col items-center justify-center overflow-hidden">
+          <div className={`h-full bg-[#fafbfc] rounded-xl flex flex-col overflow-hidden ${showWebsitePreview ? '' : 'items-center justify-center'}`}>
           {showWebsitePreview && isPrototypeMode ? (
             /* Treasure Apparel Ecommerce Preview with AI Highlights */
             <div className="relative w-full h-full flex flex-col m-3 rounded-lg border border-gray-300 shadow-lg overflow-hidden">
@@ -875,44 +876,42 @@ export default function PageEditorPage() {
                   </div>
                 )}
               </div>
-              {/* Webview */}
+              {/* Webview / iframe */}
               <div className="flex-1 relative">
-                {isWebviewLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
-                    <div className="flex flex-col items-center gap-3">
-                      <svg className="w-8 h-8 text-blue-500 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      <p className="text-sm text-gray-500">Loading website...</p>
-                    </div>
-                  </div>
-                )}
-                {webviewError && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-white z-10">
-                    <div className="text-center px-8">
-                      <svg className="w-12 h-12 text-red-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <p className="text-sm text-gray-700 font-medium mb-1">Failed to load page</p>
-                      <p className="text-xs text-gray-400">{webviewError}</p>
-                    </div>
-                  </div>
-                )}
-                {typeof (window as any).aiSuites?.chat?.startSession === 'function' ? (
-                  <webview
-                    ref={webviewRef as any}
-                    src={websiteUrl}
-                    style={{ width: '100%', height: '100%' }}
-                  />
+                {isElectron() ? (
+                  <>
+                    {isWebviewLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
+                        <div className="flex flex-col items-center gap-3">
+                          <svg className="w-8 h-8 text-blue-500 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                          <p className="text-sm text-gray-500">Loading website...</p>
+                        </div>
+                      </div>
+                    )}
+                    {webviewError && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-white z-10">
+                        <div className="text-center px-8">
+                          <svg className="w-12 h-12 text-red-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <p className="text-sm text-gray-700 font-medium mb-1">Failed to load page</p>
+                          <p className="text-xs text-gray-400">{webviewError}</p>
+                        </div>
+                      </div>
+                    )}
+                    <webview
+                      ref={webviewRef as any}
+                      src={websiteUrl}
+                      style={{ width: '100%', height: '100%' }}
+                    />
+                  </>
                 ) : (
                   <iframe
-                    ref={webviewRef as any}
                     src={`/api/web/proxy?url=${encodeURIComponent(websiteUrl)}`}
                     style={{ width: '100%', height: '100%', border: 'none' }}
-                    onLoad={() => setIsWebviewLoading(false)}
-                    onError={() => { setIsWebviewLoading(false); setWebviewError('Failed to load page'); }}
-                    sandbox="allow-same-origin allow-scripts allow-forms"
                   />
                 )}
               </div>

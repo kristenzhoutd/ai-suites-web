@@ -12,7 +12,7 @@ import { webBackend } from './web-backend';
  * Detect if running inside Electron
  */
 export function isElectron(): boolean {
-  return typeof window !== 'undefined' && !!(window as any).aiSuites?.chat?.startSession;
+  return typeof window !== 'undefined' && !!(window as any).electronAPI || !!(window as any).process?.versions?.electron;
 }
 
 /**
