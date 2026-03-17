@@ -10,17 +10,14 @@ description: >
 
 ## When to Use
 
-Activate this skill when the user has an approved blueprint and wants to generate
-the full Meta ad hierarchy for launch. Trigger phrases include:
+Activate this skill ONLY for **Meta Ads** (Facebook/Instagram) configuration.
+This skill is ONLY for Meta — never use it for Google, TikTok, or other platforms.
 
-- `[launch-config-gen]` prefix (auto-triggered from blueprint approval flow)
-- "Generate ad configuration"
-- "Create ad sets from blueprint"
-- "Build the Meta campaign from this plan"
-- "Set up the ads for launch"
-- "Turn this blueprint into ads"
+Trigger: the message starts with `[launch-config-gen]` prefix.
 
 **Do NOT use when:**
+- The message contains `[google-launch-config-gen]` → use `generate-google-ad-config` instead (CRITICAL — never emit `launch-config-json` for Google prompts)
+- The user asks for Google Ads → use `generate-google-ad-config` instead
 - The user wants to modify an existing launch config → use `refine-ad-config`
 - No blueprint exists → tell the user to generate a blueprint first
 - The user is asking about the brief → use `refine-campaign-brief`

@@ -3,6 +3,8 @@ import { X, TrendingUp, AlertTriangle, Lightbulb, Target, DollarSign, BarChart3,
 import type { Campaign } from '../../types/campaign';
 import { useOptimizeStore } from '../../stores/optimizeStore';
 import { usePlatformStore } from '../../stores/platformStore';
+import { useProgramStore } from '../../stores/programStore';
+import GuardrailsPromptCard from '../campaign/GuardrailsPromptCard';
 
 interface CampaignDetailPanelProps {
   campaign: Campaign;
@@ -276,6 +278,26 @@ export default function CampaignDetailPanel({ campaign, onClose }: CampaignDetai
             </div>
           </div>
         )}
+
+        {/* Performance Guardrails Prompt — shown for launched campaigns without targets */}
+        {hasMetrics && (() => {
+          const programs = useProgramStore.getState().programs;
+          const matchingProgram = programs.find((p: any) =>
+            (p.status === 'launched' || p.status === 'ready_to_launch') &&
+            !p.performanceGuardrails?.targetCpa &&
+            !p.performanceGuardrails?.targetRoas &&
+            !p.performanceGuardrails?.targetConversions
+          );
+          if (!matchingProgram) return null;
+          return (
+            <GuardrailsPromptCard
+              variant="detail-panel"
+              onSetGuardrails={(guardrails) => {
+                useProgramStore.getState().setPerformanceGuardrailsById(matchingProgram.id, guardrails);
+              }}
+            />
+          );
+        })()}
 
         {/* Diagnosis */}
         <div className="px-5 py-4 border-b border-[#eff2f8]">

@@ -14,16 +14,16 @@
   font-size: 14px;
   font-weight: 400;
   line-height: 1.75;
-  color: var(--neutral-11);
+  color: var(--text-default);
 }
 
 .field__label-required {
-  color: var(--error-6);
+  color: var(--text-error);
 }
 
 .field__label-help {
   display: inline-flex;
-  color: var(--neutral-6);
+  color: var(--icon-default);
   cursor: help;
 }
 
@@ -31,19 +31,19 @@
   font-size: 12px;
   font-weight: 400;
   line-height: 1.75;
-  color: var(--neutral-6);
+  color: var(--text-subtext);
 }
 
 .field--error .field__help-text {
-  color: #af4a45;
+  color: var(--text-error);
 }
 
 .field--warning .field__help-text {
-  color: #816c3f;
+  color: var(--icon-warning);
 }
 
 .field--success .field__help-text {
-  color: var(--success-6);
+  color: var(--text-success);
 }
 
 /* ===== Warning Icon Wrapper ===== */
@@ -53,8 +53,7 @@
   gap: 4px;
 }
 
-.field__input-wrapper .input,
-.field__input-wrapper .select-wrapper {
+.field__input-wrapper .input {
   flex: 1;
   min-width: 0;
 }
@@ -63,7 +62,7 @@
   flex-shrink: 0;
   width: 16px;
   height: 16px;
-  color: var(--warning-6);
+  color: var(--icon-warning);
 }
 
 /* ===== Text Input (shared for TextField, TextArea, Select) ===== */
@@ -75,9 +74,9 @@
   font-size: 14px;
   font-weight: 400;
   line-height: 1.75;
-  color: var(--neutral-11);
-  background-color: var(--neutral-0);
-  border: 1px solid var(--neutral-2);
+  color: var(--text-default);
+  background-color: var(--surface-default);
+  border: 1px solid var(--border-default);
   border-radius: 8px;
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease,
@@ -86,17 +85,17 @@
 }
 
 .input::placeholder {
-  color: var(--neutral-6);
+  color: var(--text-placeholder);
 }
 
 .input:focus {
-  box-shadow: 0 0 0 2px #879cda;
+  box-shadow: 0 0 0 2px var(--border-focus);
 }
 
 .input:disabled {
-  background-color: var(--neutral-1);
-  border-color: var(--neutral-2);
-  color: var(--neutral-7);
+  background-color: var(--surface-disabled);
+  border-color: var(--border-disabled);
+  color: var(--text-disabled);
   cursor: not-allowed;
 }
 
@@ -109,21 +108,21 @@
 
 /* Status variants */
 .input--error {
-  background-color: var(--error-0);
-  border-color: var(--error-5);
+  background-color: var(--surface-error);
+  border-color: var(--border-error);
 }
 
 .input--error:focus {
-  box-shadow: 0 0 0 2px var(--error-5);
+  box-shadow: 0 0 0 2px var(--border-error);
 }
 
 .input--warning {
-  background-color: var(--warning-0);
-  border-color: var(--warning-6);
+  background-color: var(--surface-warning);
+  border-color: var(--border-warning);
 }
 
 .input--warning:focus {
-  box-shadow: 0 0 0 2px var(--warning-6);
+  box-shadow: 0 0 0 2px var(--border-warning);
 }
 
 /* ===== TextArea ===== */
@@ -132,32 +131,6 @@
   resize: vertical;
 }
 
-/* ===== Select / Combobox ===== */
-.select-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.select-wrapper .input {
-  appearance: none;
-  padding-right: 36px;
-  cursor: pointer;
-  border: 1px solid var(--neutral-2) !important;
-}
-
-.select-wrapper .input:disabled {
-  cursor: not-allowed;
-}
-
-.select__icon {
-  position: absolute;
-  right: 12px;
-  pointer-events: none;
-  color: var(--neutral-6);
-  width: 16px;
-  height: 16px;
-}
 
 /* ===== Checkbox ===== */
 .checkbox {
@@ -263,9 +236,9 @@
   appearance: none;
   width: 16px;
   height: 16px;
-  border: 1.5px solid #878f9e;
+  border: 1.5px solid var(--border-radio-unchecked);
   border-radius: 50%;
-  background-color: var(--neutral-0);
+  background-color: var(--surface-default);
   cursor: pointer;
   flex-shrink: 0;
   position: relative;
@@ -273,22 +246,22 @@
 }
 
 .radio__input:checked {
-  border-color: #3348bd;
+  border-color: var(--border-radio-checked);
   border-width: 5px;
 }
 
 .radio__input:focus-visible {
-  box-shadow: 0 0 0 2px #879cda;
+  box-shadow: 0 0 0 2px var(--border-focus);
 }
 
 .radio__input:disabled {
-  border-color: #cbd1db;
-  background-color: #e8ecf3;
+  border-color: var(--border-disabled);
+  background-color: var(--surface-radio-disabled);
   cursor: not-allowed;
 }
 
 .radio__input:disabled:checked {
-  border-color: #b0b8cc;
+  border-color: var(--border-radio-checked-disabled);
 }
 
 .radio__input:disabled + .radio__label {
@@ -340,7 +313,7 @@
 }
 
 .toggle__input:checked + .toggle__track {
-  background-color: #3348bd;
+  background-color: var(--surface-toggle-on);
 }
 
 .toggle__input:checked + .toggle__track .toggle__thumb {

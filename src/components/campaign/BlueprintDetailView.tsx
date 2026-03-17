@@ -1,9 +1,25 @@
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { DollarSign, Calendar, Radio, Clock, Info, TrendingUp, Target, MousePointerClick, Eye, ShoppingCart, BarChart3, Users, Percent, AlertTriangle } from 'lucide-react';
 import type { Blueprint } from '../../../electron/utils/ipc-types';
 import type { CampaignBriefData } from '../../types/campaignBriefEditor';
 import { formatMessaging } from '../../utils/messagingHelpers';
 import { useCampaignLaunchStore } from '../../stores/campaignLaunchStore';
+import { useProgramStore } from '../../stores/programStore';
+import PerformanceGuardrailsSection from './PerformanceGuardrailsSection';
+
+function getKpiIcon(name: string): React.ElementType {
+  const n = name.toLowerCase();
+  if (n.includes('roas') || n.includes('return')) return TrendingUp;
+  if (n.includes('cpa') || n.includes('cost per acquisition')) return Target;
+  if (n.includes('ctr') || n.includes('click-through') || n.includes('click through')) return MousePointerClick;
+  if (n.includes('view-through') || n.includes('view through') || n.includes('vtr')) return Eye;
+  if (n.includes('conversion') || n.includes('conv')) return ShoppingCart;
+  if (n.includes('order value') || n.includes('aov') || n.includes('revenue')) return DollarSign;
+  if (n.includes('volume') || n.includes('customer')) return Users;
+  if (n.includes('rate')) return Percent;
+  return BarChart3;
+}
 
 interface ChannelAllocation {
   channel: string;
@@ -641,18 +657,21 @@ export const BlueprintDetailView: React.FC<BlueprintDetailViewProps> = ({
   // Recompute outcomes from local state so they react to edits
   const outcomes = useMemo(() => generateOutcomes(local), [local]);
 
-  // Currency and budget calculations from local
-  const currencyMatch = local.budget.amount.match(/^([£$€])/);
-  const currency = currencyMatch ? currencyMatch[1] : '£';
-  const budgetNum = parseFloat(local.budget.amount.replace(/[^0-9.]/g, '')) || 0;
-  const budgetMultiplier = local.budget.amount.toUpperCase().includes('K') ? 1000 :
-    local.budget.amount.toUpperCase().includes('M') ? 1000000 : 1;
+  // Currency and budget calculations from local (fallback to briefData)
+  const budgetStr = local.budget.amount || briefData?.budgetAmount || '$200,000';
+  const currencyMatch = budgetStr.match(/^([£$€])/);
+  const currency = currencyMatch ? currencyMatch[1] : '$';
+  const budgetNum = parseFloat(budgetStr.replace(/[^0-9.]/g, '')) || 0;
+  const budgetMultiplier = budgetStr.toUpperCase().includes('K') ? 1000 :
+    budgetStr.toUpperCase().includes('M') ? 1000000 : 1;
   const totalBudget = budgetNum * budgetMultiplier;
 
   const formatSpend = useCallback((pct: number): string => {
-    const value = Math.round(totalBudget * (pct / 100) / 1000);
-    if (value === 0) return '-';
-    return `~${currency}${value}k`;
+    const low = Math.round(totalBudget * (Math.max(pct - 5, 0) / 100));
+    const high = Math.round(totalBudget * (Math.min(pct + 5, 100) / 100));
+    if (low === 0 && high === 0) return '-';
+    const fmt = (v: number) => v >= 1000 ? `${currency}${Math.round(v / 1000)}k` : `${currency}${v}`;
+    return `≈${fmt(low)} - ${fmt(high)}`;
   }, [totalBudget, currency]);
 
   // Recalculate allocation spend strings when budget changes
@@ -994,7 +1013,7 @@ export const BlueprintDetailView: React.FC<BlueprintDetailViewProps> = ({
       {/* Gray canvas */}
       <div className="flex-1 overflow-y-auto bg-[#F5F7FA] rounded-xl mx-3 mb-3">
       {/* Main Content */}
-      <div className="grid gap-5 p-5" style={{ gridTemplateColumns: '240px 1fr' }}>
+      <div className="grid gap-5 p-5" style={{ gridTemplateColumns: '280px 1fr' }}>
         {/* Left Sidebar */}
         <div className="flex flex-col gap-5 relative">
           {/* Recalculating overlay */}
@@ -1005,25 +1024,43 @@ export const BlueprintDetailView: React.FC<BlueprintDetailViewProps> = ({
             </div>
           )}
 
-          {/* Confidence Score */}
-          <div className={`bg-white rounded-xl px-5 py-4 shadow-sm relative transition-opacity duration-300 ${isRecalculating ? 'opacity-50 mt-12' : ''}`}>
-            <div className="flex items-center gap-4 mb-4">
-              <div className="relative w-[60px] h-[60px]">
-                <svg viewBox="0 0 36 36" className="w-[60px] h-[60px] -rotate-90">
-                  <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#E5E7EB" strokeWidth="3" />
-                  <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#22C55E" strokeWidth="3" strokeDasharray={`${confidenceScore}, 100`} />
+          {/* Confidence Score + Expected Outcomes + Blueprint Health + Risks */}
+          <div className={`bg-white rounded-xl px-5 py-5 shadow-sm relative transition-opacity duration-300 ${isRecalculating ? 'opacity-50 mt-12' : ''}`}>
+            {/* Confidence Score — centered */}
+            <div className="flex flex-col items-center text-center mb-7">
+              <div className="relative w-[64px] h-[64px] mb-2">
+                <svg viewBox="0 0 36 36" className="w-[64px] h-[64px]" style={{ transform: 'rotate(-90deg)' }}>
+                  <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#F3F4F6" strokeWidth="4.5" />
+                  <circle cx="18" cy="18" r="15.9155" fill="none"
+                    stroke={confidenceScore >= 75 ? '#2DD4BF' : confidenceScore >= 50 ? '#FBBF24' : '#F87171'}
+                    strokeWidth="4.5"
+                    strokeDasharray={`${confidenceScore}, 100`}
+                    strokeLinecap="round"
+                  />
                 </svg>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-sm font-semibold text-green-500">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-sm font-bold text-gray-900">
                   {confidenceScore}%
                 </div>
               </div>
-              <div className="text-xs text-gray-500">Campaign Confidence Score</div>
+              <div className="text-xs text-gray-400 mb-1">Campaign Confidence Score</div>
+              <span className={`text-[11px] font-medium px-2 py-0.5 rounded-md ${
+                confidenceScore >= 75 ? 'text-teal-700 bg-teal-50' : confidenceScore >= 50 ? 'text-amber-700 bg-amber-50' : 'text-red-700 bg-red-50'
+              }`}>
+                {confidenceScore >= 90 ? 'Very Strong' : confidenceScore >= 75 ? 'Strong' : confidenceScore >= 50 ? 'Moderate' : 'Low'}
+              </span>
+              <div className="relative group mt-1.5">
+                <span className="text-[10px] text-gray-400 cursor-help underline decoration-dashed decoration-gray-300 underline-offset-2">How is this calculated?</span>
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2.5 bg-white text-gray-700 text-[11px] leading-relaxed rounded-lg w-[220px] shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all pointer-events-none z-50">
+                  Based on budget sufficiency, audience reachability, and creative readiness signals across your campaign plan.
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-gray-200 rotate-45 -mt-1" />
+                </div>
+              </div>
             </div>
 
-            {/* Expected Outcomes */}
-            <div className="mb-2">
-              <div className="text-[13px] font-semibold text-gray-900 mb-3">Expected Outcomes</div>
-              <div className="grid grid-cols-2 gap-3">
+            {/* Expected Outcomes — compact 2-column grid */}
+            <div className="mb-7 pt-5 border-t border-gray-100 -mx-5 px-5">
+              <h3 className="text-sm font-semibold text-gray-900 m-0 mb-3">Expected Outcomes</h3>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-3">
                 {[
                   { label: 'Online Sales', value: outcomes.onlineSales },
                   { label: 'Conversions', value: outcomes.conversions },
@@ -1031,30 +1068,79 @@ export const BlueprintDetailView: React.FC<BlueprintDetailViewProps> = ({
                   { label: 'CPA', value: outcomes.cpa },
                 ].map((item) => (
                   <div key={item.label}>
-                    <div className="text-[11px] text-gray-500">{item.label}</div>
-                    <div className="text-base font-semibold text-gray-900">{item.value}</div>
+                    <div className="text-[11px] text-gray-400">{item.label}</div>
+                    <div className="text-sm font-semibold text-gray-900 mt-0.5">{item.value}</div>
                   </div>
                 ))}
               </div>
             </div>
-          </div>
 
-          {/* Blueprint Health */}
-          <div className="bg-white rounded-xl px-5 py-4 shadow-sm relative">
-            <div className="text-[13px] font-semibold text-gray-900 mb-3">Blueprint Health</div>
-            <div className="flex flex-col gap-2">
-              {[
-                { label: 'Budget Sufficiency', ok: hasBudget },
-                { label: 'Audience Reachability', ok: local.audiences.length > 0 },
-                { label: 'Creative Readiness', ok: true },
-              ].map((item) => (
-                <div key={item.label} className="flex justify-between items-center">
-                  <span className="text-[13px] text-gray-700">{item.label}</span>
-                  <span className={`text-[13px] font-medium ${item.ok ? 'text-green-500' : 'text-yellow-500'}`}>
-                    {item.ok ? 'Good' : 'Pending'}
-                  </span>
-                </div>
-              ))}
+            {/* Blueprint Health */}
+            <div className="mb-7 pt-5 border-t border-gray-100 -mx-5 px-5">
+              <h3 className="text-sm font-semibold text-gray-900 m-0 mb-3">Blueprint Health</h3>
+              <div className="flex flex-col">
+                {[
+                  { label: 'Budget Sufficiency', ok: hasBudget, risk: false },
+                  { label: 'Audience Reachability', ok: local.audiences.length > 0, risk: false },
+                  { label: 'Creative Readiness', ok: true, risk: true },
+                ].map((item) => (
+                  <div key={item.label} className="flex justify-between items-center py-2">
+                    <span className="text-[13px] text-gray-600">{item.label}</span>
+                    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-md ${
+                      !item.ok ? 'text-amber-700 bg-amber-100' :
+                      item.risk ? 'text-amber-700 bg-amber-100' :
+                      'text-green-700 bg-green-100'
+                    }`}>
+                      {!item.ok ? 'Pending' : item.risk ? 'Good / At Risk' : 'Good'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Success Conditions */}
+            <div className="mb-7 pt-5 border-t border-gray-100 -mx-5 px-5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-1 h-4 rounded-full bg-teal-400" />
+                <h3 className="text-sm font-semibold text-gray-900 m-0">Success Conditions</h3>
+              </div>
+              <div className="flex flex-col gap-2.5">
+                {(() => {
+                  const goals = [...(briefData?.primaryGoals || []), ...(briefData?.secondaryGoals || [])];
+                  return (goals.length > 0 ? goals.slice(0, 4) : [
+                    'New-customer growth at or below target CPA',
+                    'Stable performance through learning and ramp-up phases',
+                    'Clear signals to scale, hold, or reallocate spend',
+                    'Actionable creative and audience insights for future campaigns',
+                  ]).map((g: string, idx: number) => (
+                    <div key={idx} className="flex items-start gap-2.5">
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="flex-shrink-0 mt-0.5">
+                        <path d="M3 7L5.5 9.5L11 4" stroke="#14B8A6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <span className="text-[13px] text-gray-600 leading-snug">{g}</span>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+
+            {/* Top Risks */}
+            <div className="pt-5 border-t border-gray-100 -mx-5 px-5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-1 h-4 rounded-full bg-amber-400" />
+                <h3 className="text-sm font-semibold text-gray-900 m-0">Top Risks</h3>
+              </div>
+              <div className="flex flex-col gap-2.5">
+                {[
+                  'Creative fatigue may limit scale if refresh assets are delayed',
+                  'Retargeting pool may be too narrow for sustained volume',
+                ].map((risk, idx) => (
+                  <div key={idx} className="flex items-start gap-2.5">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+                    <span className="text-[13px] text-gray-600 leading-snug">{risk}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -1073,125 +1159,127 @@ export const BlueprintDetailView: React.FC<BlueprintDetailViewProps> = ({
             />
             <h2 className="text-sm font-semibold text-gray-900 m-0 pb-3 mb-4 border-b border-gray-100 -mx-5 px-5">Overview</h2>
 
-            {/* Campaign snapshot bar — 3 columns */}
-            <div className="flex gap-0 mb-6 bg-gray-50 rounded-[10px] overflow-hidden border border-[#F0F1F3]">
-              {/* Budget */}
-              <div className="flex-1 px-4 py-3 flex flex-col border-r border-gray-200">
-                <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Budget</div>
+            {/* Campaign snapshot cards — 4 columns */}
+            <div className="grid grid-cols-4 gap-3 mb-6">
+              <div className="rounded-xl border border-gray-100 bg-white px-4 py-4">
+                <div className="flex items-start justify-between mb-2">
+                  <span className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Budget</span>
+                  <div className="w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center">
+                    <DollarSign className="w-3.5 h-3.5 text-gray-400" strokeWidth={1.5} />
+                  </div>
+                </div>
                 {editingSection === 'Overview' ? (
-                  <input
-                    type="text"
-                    value={editDraft.budget ?? ''}
-                    onChange={(e) => setEditDraft(prev => ({ ...prev, budget: e.target.value }))}
-                    placeholder="e.g. $200,000"
-                    className="mt-0.5 w-full px-2 py-1 border border-[#3B6FD4] rounded text-[13px] font-semibold text-gray-900 outline-none bg-[#FAFBFF] focus:ring-2 focus:ring-[#3B6FD4]/10"
-                  />
+                  <input type="text" value={editDraft.budget ?? ''} onChange={(e) => setEditDraft(prev => ({ ...prev, budget: e.target.value }))} placeholder="e.g. $200,000" className="w-full px-2 py-1 border border-gray-300 rounded text-base font-semibold text-gray-900 outline-none focus:ring-2 focus:ring-black/10 focus:border-gray-400" />
                 ) : (
-                  <div className="text-[13px] font-semibold text-gray-900 mt-0.5">{briefData?.budgetAmount || local.budget?.amount || '$200,000'}</div>
+                  <div className="text-base font-semibold text-gray-900">{briefData?.budgetAmount || local.budget?.amount || '$200,000'}</div>
                 )}
               </div>
-              {/* Timeline */}
-              <div className="flex-1 px-4 py-3 flex flex-col border-r border-gray-200">
-                <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Timeline</div>
-                <div className="text-[13px] font-semibold text-gray-900 mt-0.5">
-                  {(() => {
-                    const s = briefData?.timelineStart; const e = briefData?.timelineEnd;
-                    if (s && e) { const fmt = (d: string) => { const p = new Date(d); return isNaN(p.getTime()) ? d.replace(/,?\s*\d{4}/, '') : p.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }; return `${fmt(s)} – ${fmt(e)}`; }
-                    return 'TBD';
-                  })()}
+              <div className="rounded-xl border border-gray-100 bg-white px-4 py-4">
+                <div className="flex items-start justify-between mb-2">
+                  <span className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Timeline</span>
+                  <div className="w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center">
+                    <Calendar className="w-3.5 h-3.5 text-gray-400" strokeWidth={1.5} />
+                  </div>
+                </div>
+                <div className="text-base font-semibold text-gray-900">
+                  {(() => { const s = briefData?.timelineStart; const e = briefData?.timelineEnd; if (s && e) { const fmt = (d: string) => { const p = new Date(d); return isNaN(p.getTime()) ? d.replace(/,?\s*\d{4}/, '') : p.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }; return `${fmt(s)} – ${fmt(e)}`; } return 'TBD'; })()}
                 </div>
               </div>
-              {/* Channels */}
-              <div className="flex-1 px-4 py-3 flex flex-col">
-                <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Channels</div>
-                <div className="text-[13px] font-semibold text-gray-900 mt-0.5">{`${allocations.length} channel${allocations.length !== 1 ? 's' : ''}`}</div>
-              </div>
-            </div>
-
-            {/* Two-column grid: Objective + KPIs | Attribution + Success */}
-            <div className="grid grid-cols-2 gap-8">
-              {/* Left: Objective & KPIs */}
-              <div className="flex flex-col gap-6">
-                <div>
-                  <h3 className="text-[13px] font-semibold text-gray-700 m-0 mb-2.5">Primary Objective</h3>
-                  {editingSection === 'Overview' ? (
-                    <textarea
-                      value={editDraft.description ?? formatMessaging(local.messaging) ?? ''}
-                      onChange={(e) => setEditDraft(prev => ({ ...prev, description: e.target.value }))}
-                      rows={3}
-                      className="w-full px-3 py-2.5 border border-[#3B6FD4] rounded-lg text-sm text-gray-700 leading-relaxed resize-y outline-none bg-[#FAFBFF] focus:ring-2 focus:ring-[#3B6FD4]/10"
-                    />
-                  ) : (
-                    <div className="border-l-[3px] border-[#3B6FD4] pl-3.5">
-                      <p className="text-sm text-gray-800 leading-relaxed m-0">
-                        {briefData?.businessObjective || formatMessaging(local.messaging) || 'Efficiently acquire new customers while maintaining stable cost per acquisition.'}
-                      </p>
-                    </div>
-                  )}
+              <div className="rounded-xl border border-gray-100 bg-white px-4 py-4">
+                <div className="flex items-start justify-between mb-2">
+                  <span className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Channels ({allocations.length})</span>
+                  <div className="w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center">
+                    <Radio className="w-3.5 h-3.5 text-gray-400" strokeWidth={1.5} />
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-[13px] font-semibold text-gray-700 m-0 mb-3">Key Performance Indicators</h3>
-                  <div className="flex flex-col gap-2.5">
-                    {/* Northstar KPI */}
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#3B6FD4] flex-shrink-0" />
-                      <span className="text-[13px] text-gray-700">
-                        <strong className="font-semibold text-gray-900">Northstar:</strong>{' '}
-                        {briefData?.primaryKpis?.[0] || 'CPA'}
-                      </span>
-                      <span className="text-[11px] font-semibold text-[#1957DB] bg-[#EFF6FF] px-2 py-0.5 rounded uppercase tracking-wide">Primary</span>
-                    </div>
-                    {/* Secondary KPIs */}
-                    {(briefData?.secondaryKpis?.length ? briefData.secondaryKpis : briefData?.primaryKpis?.slice(1) || ['Conversion Rate', 'ROAS']).map((kpi: string, idx: number) => (
-                      <div key={idx} className="flex items-center gap-2.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-300 flex-shrink-0" />
-                        <span className="text-[13px] text-gray-700">{kpi}</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {allocations.map((a) => (
+                    <span key={a.channel} className="text-xs font-medium text-gray-700 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-md">{a.channel}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-xl border border-gray-100 bg-white px-4 py-4">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-1">
+                    <span className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Attribution</span>
+                    <div className="relative group">
+                      <Info className="w-3.5 h-3.5 text-gray-400 cursor-help" strokeWidth={1.5} />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2.5 bg-white text-gray-700 text-[11px] leading-relaxed rounded-lg w-[220px] shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all pointer-events-none z-50">
+                        The time window after a click or view during which a conversion is credited to your ad.
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-gray-200 rotate-45 -mt-1" />
                       </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Right: Attribution & Success */}
-              <div className="flex flex-col gap-6">
-                <div>
-                  <h3 className="text-[13px] font-semibold text-gray-700 m-0 mb-2.5">Attribution Window</h3>
-                  <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg border border-[#F0F1F3]">
-                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="flex-shrink-0">
-                      <circle cx="9" cy="9" r="7" stroke="#3B6FD4" strokeWidth="1.4"/>
-                      <path d="M9 5V9L11.5 11.5" stroke="#3B6FD4" strokeWidth="1.4" strokeLinecap="round"/>
-                    </svg>
-                    <div>
-                      <div className="text-sm font-semibold text-gray-900">7-day click / 1-day view</div>
-                      <div className="text-xs text-gray-500 mt-0.5">Balances responsiveness with signal reliability</div>
                     </div>
                   </div>
-                </div>
-                <div>
-                  <h3 className="text-[13px] font-semibold text-gray-700 m-0 mb-3">What success looks like</h3>
-                  <div className="flex flex-col gap-2.5">
-                    {(() => {
-                      const goals = [...(briefData?.primaryGoals || []), ...(briefData?.secondaryGoals || [])];
-                      return (goals.length > 0 ? goals.slice(0, 4) : [
-                        'New-customer growth at or below target CPA',
-                        'Stable performance through learning phases',
-                        'Clear signals to scale, hold, or reallocate',
-                        'Actionable insights for future campaigns',
-                      ]).map((g: string, idx: number) => (
-                        <div key={idx} className="flex items-start gap-2.5">
-                          <div className="w-5 h-5 rounded-md bg-green-50 border border-green-200 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                              <path d="M3 6L5 8L9 4" stroke="#16A34A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          </div>
-                          <span className="text-[13px] text-gray-700 leading-snug">{g}</span>
-                        </div>
-                      ));
-                    })()}
+                  <div className="w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center">
+                    <Clock className="w-3.5 h-3.5 text-gray-400" strokeWidth={1.5} />
                   </div>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <span className="text-xs font-medium text-gray-700 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-md">7-day click</span>
+                  <span className="text-xs font-medium text-gray-700 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-md">1-day view</span>
                 </div>
               </div>
             </div>
+
+            {/* Primary Objective */}
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-gray-900 m-0 mb-2">Primary Objective</h3>
+              {editingSection === 'Overview' ? (
+                <textarea value={editDraft.description ?? formatMessaging(local.messaging) ?? ''} onChange={(e) => setEditDraft(prev => ({ ...prev, description: e.target.value }))} rows={3} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 leading-relaxed resize-y outline-none focus:ring-2 focus:ring-black/10 focus:border-gray-400" />
+              ) : (
+                <p className="text-sm text-gray-500 leading-relaxed m-0">
+                  {briefData?.businessObjective || formatMessaging(local.messaging) || 'Efficiently acquire new customers while maintaining stable cost per acquisition.'}
+                </p>
+              )}
+            </div>
+
+            {/* Northstar KPI + Secondary KPIs — side by side */}
+            <div className="grid grid-cols-2 gap-8 mb-6">
+              <div>
+                <div className="flex items-center gap-1 mb-3">
+                  <h3 className="text-sm font-semibold text-gray-900 m-0">Northstar KPI</h3>
+                  <div className="relative group">
+                    <Info className="w-3.5 h-3.5 text-gray-400 cursor-help" strokeWidth={1.5} />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2.5 bg-white text-gray-700 text-[11px] leading-relaxed rounded-lg w-[220px] shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all pointer-events-none z-50">
+                      The single most important metric used to evaluate campaign success and guide optimization decisions.
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-gray-200 rotate-45 -mt-1" />
+                    </div>
+                  </div>
+                </div>
+                {(() => { const kpiName = briefData?.primaryKpis?.[0] || 'New Customer CPA'; const Icon = getKpiIcon(kpiName); return (
+                  <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md border border-gray-200 bg-white w-fit mb-2">
+                    <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"><Icon className="w-3 h-3 text-gray-500" strokeWidth={1.5} /></div>
+                    <span className="text-xs font-semibold text-gray-700">{kpiName}</span>
+                  </div>
+                ); })()}
+                <p className="text-sm text-gray-400 leading-relaxed m-0">Primary signal for budget allocation, pacing, and optimization decisions across channels.</p>
+              </div>
+              <div>
+                <div className="flex items-center gap-1 mb-3">
+                  <h3 className="text-sm font-semibold text-gray-900 m-0">Secondary KPIs</h3>
+                  <div className="relative group">
+                    <Info className="w-3.5 h-3.5 text-gray-400 cursor-help" strokeWidth={1.5} />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2.5 bg-white text-gray-700 text-[11px] leading-relaxed rounded-lg w-[220px] shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all pointer-events-none z-50">
+                      Supporting metrics that provide additional context without overriding the primary optimization target.
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-gray-200 rotate-45 -mt-1" />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(briefData?.secondaryKpis?.length ? briefData.secondaryKpis : briefData?.primaryKpis?.slice(1) || ['Click-Through Rate', 'View-Through Rate', 'Average Order Value', 'ROAS']).map((kpi: string, idx: number) => {
+                    const Icon = getKpiIcon(kpi);
+                    return (
+                      <div key={idx} className="flex items-center gap-2 px-2.5 py-1.5 rounded-md border border-gray-100 bg-white">
+                        <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"><Icon className="w-3 h-3 text-gray-400" strokeWidth={1.5} /></div>
+                        <span className="text-xs font-semibold text-gray-700">{kpi}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Success conditions moved to sidebar panel */}
             {editingSection === 'Overview' && (
               <div className="flex gap-2 justify-end mt-4">
                 <button onClick={() => { setEditingSection(null); setEditDraft({}); }} className="px-3.5 py-1.5 bg-white border border-gray-200 rounded-lg text-[13px] text-gray-700 cursor-pointer hover:bg-gray-50">Cancel</button>
@@ -1212,54 +1300,46 @@ export const BlueprintDetailView: React.FC<BlueprintDetailViewProps> = ({
             />
             <h2 className="text-sm font-semibold text-gray-900 m-0 pb-3 mb-4 border-b border-gray-100 -mx-5 px-5">Media Mix</h2>
 
-            {/* Table header */}
-            <div className="flex items-center gap-4 py-2 mt-4 border-b border-gray-200 text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
-              <div className="w-8 flex-shrink-0" />
-              <div className="flex-1">Channel</div>
-              <div className="w-28 text-center">Role</div>
-              <div className="w-20 text-right">Weight</div>
-              <div className="w-16 text-right">Spend</div>
+            <div className="grid grid-cols-[180px_140px_1fr_120px] gap-4 py-3 mt-4 text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+              <div>Channel</div>
+              <div>Role</div>
+              <div>Relative Spend Weight</div>
+              <div className="text-right">Budget</div>
             </div>
 
             <div className="flex flex-col">
               {allocations.map((alloc, idx) => {
                 const icon = getChannelIcon(alloc.channel);
                 return (
-                  <div key={idx} className="flex items-center gap-4 py-3.5 border-b border-gray-100 last:border-b-0">
-                    <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0">
-                      {icon ? <img src={icon} alt={alloc.channel} className="w-5 h-5" /> : <span className="text-xs font-bold text-gray-400">{alloc.channel.charAt(0)}</span>}
-                    </div>
-                    <div className="flex-1 min-w-0">
+                  <div key={idx} className="grid grid-cols-[180px_140px_1fr_120px] gap-4 py-4 items-center">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0">
+                        {icon ? <img src={icon} alt={alloc.channel} className="w-5 h-5" /> : <span className="text-xs font-bold text-gray-400">{alloc.channel.charAt(0)}</span>}
+                      </div>
                       <span className="text-sm font-medium text-gray-900">{alloc.channel}</span>
                     </div>
-                    <div className="w-28 text-center">
-                      <span className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">{alloc.role}</span>
+                    <div>
+                      <span className="text-xs font-medium text-gray-600 bg-gray-100 px-2.5 py-1 rounded-md">{alloc.role}</span>
                     </div>
-                    <div className="w-20 text-right">
-                      {editingSection === 'Media Mix' ? (
-                        <input
-                          type="number"
-                          min={0}
-                          max={100}
-                          value={alloc.percentage}
-                          onChange={(e) => handleAllocationChange(idx, parseInt(e.target.value) || 0)}
-                          className="w-16 px-1.5 py-1 border border-gray-300 rounded text-sm text-right text-gray-900 outline-none focus:border-[#3B6FD4]"
-                        />
-                      ) : (
-                        <span className="text-sm font-semibold text-gray-900">{alloc.percentage}%</span>
-                      )}
+                    <div>
+                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-1.5">
+                        <div className="h-full bg-green-400 rounded-full" style={{ width: `${alloc.percentage}%` }} />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {editingSection === 'Media Mix' ? (
+                          <input type="number" min={0} max={100} value={alloc.percentage} onChange={(e) => handleAllocationChange(idx, parseInt(e.target.value) || 0)} className="w-16 px-1.5 py-1 border border-gray-300 rounded text-xs text-gray-900 outline-none focus:border-gray-400" />
+                        ) : (
+                          <span className="text-xs text-gray-500">{alloc.percentage}%</span>
+                        )}
+                        {editingSection === 'Media Mix' && allocations.length > 1 && (
+                          <button onClick={() => handleRemoveChannel(idx)} className="w-5 h-5 flex items-center justify-center bg-transparent border-none cursor-pointer text-gray-400 hover:text-red-500 p-0 ml-auto" title="Remove channel">
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 2L10 10M10 2L2 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div className="w-16 text-right flex items-center justify-end gap-1">
-                      <span className="text-xs text-gray-500">{alloc.spend}</span>
-                      {editingSection === 'Media Mix' && allocations.length > 1 && (
-                        <button
-                          onClick={() => handleRemoveChannel(idx)}
-                          className="w-5 h-5 flex items-center justify-center bg-transparent border-none cursor-pointer text-gray-400 hover:text-red-500 p-0"
-                          title="Remove channel"
-                        >
-                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 2L10 10M10 2L2 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-                        </button>
-                      )}
+                    <div className="text-right">
+                      <span className="text-sm font-semibold text-gray-900">{formatSpend(alloc.percentage)}</span>
                     </div>
                   </div>
                 );
@@ -1267,13 +1347,8 @@ export const BlueprintDetailView: React.FC<BlueprintDetailViewProps> = ({
             </div>
             {editingSection === 'Media Mix' && (
               <div className="flex flex-col gap-3 mt-4">
-                {/* Add Channel */}
                 {availableChannels.length > 0 && (
-                  <AddChannelDropdown
-                    availableChannels={availableChannels}
-                    onAdd={handleAddChannel}
-                    getChannelIcon={getChannelIcon}
-                  />
+                  <AddChannelDropdown availableChannels={availableChannels} onAdd={handleAddChannel} getChannelIcon={getChannelIcon} />
                 )}
                 <div className="flex gap-2 justify-end">
                   <button onClick={() => { setEditingSection(null); setAllocations(generateMediaMix(local)); }} className="px-3.5 py-1.5 bg-white border border-gray-200 rounded-lg text-[13px] text-gray-700 cursor-pointer hover:bg-gray-50">Cancel</button>
@@ -1282,14 +1357,12 @@ export const BlueprintDetailView: React.FC<BlueprintDetailViewProps> = ({
               </div>
             )}
 
-            {/* Total */}
-            <div className="flex items-center gap-4 py-3 mt-1 border-t border-gray-300">
-              <div className="w-8 flex-shrink-0" />
-              <div className="flex-1 text-sm font-semibold text-gray-900">Total</div>
-              <div className="w-28" />
-              <div className="w-20 text-right text-sm font-semibold text-gray-900">100%</div>
-              <div className="w-16 text-right text-xs font-semibold text-gray-700">
-                {totalBudget > 0 ? `${currency}${totalBudget >= 1000 ? `${Math.round(totalBudget / 1000)}k` : totalBudget}` : '-'}
+            <div className="flex justify-end py-4 mt-2 border-t border-gray-200">
+              <div className="flex items-center gap-6 px-4 py-2.5 bg-gray-50 rounded-lg">
+                <span className="text-sm font-medium text-gray-500">Total</span>
+                <span className="text-sm font-semibold text-gray-900">
+                  {totalBudget > 0 ? `${currency}${Math.round(totalBudget).toLocaleString()}` : '-'}
+                </span>
               </div>
             </div>
           </div>
@@ -1306,57 +1379,143 @@ export const BlueprintDetailView: React.FC<BlueprintDetailViewProps> = ({
             />
             <h2 className="text-sm font-semibold text-gray-900 m-0 pb-3 mb-4 border-b border-gray-100 -mx-5 px-5">Audience</h2>
 
-            {/* Audience cards */}
-            <div className="grid grid-cols-2 gap-4 mt-6">
-              {local.audiences.length > 0 ? local.audiences.map((audience, idx) => {
-                const audienceName = typeof audience === 'string' ? audience : (audience as any)?.name || String(audience);
-                return (
-                  <div key={idx} className={`rounded-2xl p-6 flex flex-col gap-4 ${idx === 0 ? 'bg-[#F7F8FB]' : 'border border-[#DCE1EA]'}`}>
-                    <div className="flex justify-end">
-                      <span className="text-xs font-medium text-[#25582E] bg-[#C9F3D1] px-2 py-1 rounded">
-                        {local.confidence}
-                      </span>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <div className="text-sm text-[#464B55]">{idx === 0 ? 'Primary Audience' : 'Secondary Audience'}</div>
-                      {editingSection === 'Targeting' ? (
-                        <input
-                          type="text"
-                          value={editDraft[`audience_${idx}`] ?? audienceName}
-                          onChange={(e) => {
-                            setEditDraft(prev => ({ ...prev, [`audience_${idx}`]: e.target.value }));
-                          }}
-                          className="w-full px-3 py-2 border border-[#3B6FD4] rounded-lg text-base text-[#212327] outline-none bg-[#FAFBFF] focus:ring-2 focus:ring-[#3B6FD4]/10"
-                        />
-                      ) : (
-                        <div className="text-base font-medium text-[#212327]">{audienceName}</div>
-                      )}
-                      <div className="flex gap-2">
-                        <span className="text-xs font-medium text-[#1957DB] bg-[#F1F4FC] px-2 py-0.5 rounded">
-                          {idx === 0 ? 'High Intent' : 'Lookalike'}
-                        </span>
-                        <span className="text-xs font-medium text-[#1957DB] bg-[#F1F4FC] px-2 py-0.5 rounded">
-                          {idx === 0 ? 'Prospecting' : 'Expansion'}
-                        </span>
+            {local.audiences.length > 0 ? (() => {
+              const allAudiences = local.audiences.map((audience, idx) => ({
+                idx,
+                name: typeof audience === 'string' ? audience : (audience as any)?.name || String(audience),
+              }));
+              const primaryAudiences = allAudiences.slice(0, 2);
+              const expansionAudiences = allAudiences.slice(2);
+
+              const audienceMeta: Record<number, { subtitle: string; tags: string[]; time: string; spendPct: number; reach: string; goal: string; roas: string }> = {
+                0: { subtitle: 'Retargeting High-Intent Shoppers', tags: ['High Intent', 'Prospecting'], time: 'Last 14 Days', spendPct: 40, reach: 'High', goal: 'Conversion', roas: '3.2x' },
+                1: { subtitle: 'Retargeting Recent Viewers', tags: ['Lookalike', 'Expansion'], time: 'Last 30 Days', spendPct: 25, reach: 'Medium', goal: 'Retargeting', roas: '2.5x' },
+                2: { subtitle: 'Engaged Category Browsers', tags: ['Interest-Based', 'Discovery'], time: 'Last 30 Days', spendPct: 20, reach: 'Medium', goal: 'Awareness & Consideration', roas: '1.8x' },
+                3: { subtitle: 'General Site Visitors', tags: ['Broad', 'Awareness'], time: 'Last 7 Days', spendPct: 15, reach: 'Broad', goal: 'Reach & Acquisition', roas: '1.2x' },
+              };
+
+              return (<>
+                {/* Primary Audiences */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-900 m-0 mb-3">Primary Audience</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {primaryAudiences.map((item) => {
+                      const meta = audienceMeta[item.idx] || audienceMeta[0];
+                      return (
+                        <div key={item.idx} className="rounded-xl border border-gray-100 bg-white p-5 flex flex-col gap-3">
+                          <div>
+                            {editingSection === 'Targeting' ? (
+                              <input
+                                type="text"
+                                value={editDraft[`audience_${item.idx}`] ?? item.name}
+                                onChange={(e) => setEditDraft(prev => ({ ...prev, [`audience_${item.idx}`]: e.target.value }))}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 outline-none focus:ring-2 focus:ring-black/10 focus:border-gray-400"
+                              />
+                            ) : (
+                              <div className="text-sm font-semibold text-gray-900">{item.name} — {meta.time}</div>
+                            )}
+                            <div className="text-xs text-gray-400 mt-0.5">{meta.subtitle}</div>
+                          </div>
+                          <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-2 flex-1">
+                              <span className="text-[11px] text-gray-400 flex-shrink-0">Spend</span>
+                              <div className="h-1.5 bg-gray-100 rounded-full flex-1 overflow-hidden">
+                                <div className="h-full bg-gray-600 rounded-full" style={{ width: `${meta.spendPct}%` }} />
+                              </div>
+                              <span className="text-[11px] text-gray-500 flex-shrink-0">~{meta.spendPct}%</span>
+                            </div>
+                            <div className="flex items-center gap-2 flex-1">
+                              <span className="text-[11px] text-gray-400 flex-shrink-0">Reach</span>
+                              <div className="flex gap-0.5 flex-shrink-0">
+                                {[1,2,3,4,5].map((i) => (
+                                  <div key={i} className={`w-3 h-2 rounded-sm ${
+                                    i <= (meta.reach === 'High' ? 5 : meta.reach === 'Medium' ? 3 : meta.reach === 'Broad' ? 4 : 2)
+                                      ? (i <= 2 ? 'bg-green-500' : i <= 4 ? 'bg-yellow-400' : 'bg-red-400')
+                                      : 'bg-gray-200'
+                                  }`} />
+                                ))}
+                              </div>
+                              <span className="text-[11px] text-gray-500 flex-shrink-0">{meta.reach}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex gap-1.5">
+                              {meta.tags.map((tag, i) => (
+                                <span key={i} className="text-[11px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md">{tag}</span>
+                              ))}
+                            </div>
+                            <span className="text-xs text-gray-500">Est. {meta.roas} ROAS</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Expansion Audiences — table */}
+                {expansionAudiences.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 m-0 mb-3">Expansion Audiences</h3>
+                    <div className="rounded-xl border border-gray-100 overflow-hidden">
+                      <div className="grid grid-cols-[1fr_130px_110px_130px_100px] gap-4 px-4 py-2.5 bg-gray-50 text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+                        <div>Audience Segment</div>
+                        <div>Spend Allocation</div>
+                        <div>Est. Reach</div>
+                        <div>Primary Goal</div>
+                        <div className="text-right">Performance</div>
                       </div>
-                    </div>
-                    <div className="h-px bg-[#DCE1EA]" />
-                    <div className="flex items-center gap-4">
-                      <span className="text-sm text-[#636A77]">Spend Priority</span>
-                      <div className="flex gap-1">
-                        {[1,2,3,4,5].map((i) => (
-                          <div key={i} className={`w-3 h-3 rounded-full ${i <= (idx === 0 ? 5 : 3) ? 'bg-[#464B55]' : 'bg-[#DCE1EA]'}`} />
-                        ))}
-                      </div>
+                      {expansionAudiences.map((item, rowIdx) => {
+                        const meta = audienceMeta[item.idx] || audienceMeta[2];
+                        return (
+                          <div key={item.idx} className={`grid grid-cols-[1fr_130px_110px_130px_100px] gap-4 px-4 py-3.5 items-center bg-white ${rowIdx < expansionAudiences.length - 1 ? 'border-b border-gray-50' : ''}`}>
+                            <div>
+                              {editingSection === 'Targeting' ? (
+                                <input
+                                  type="text"
+                                  value={editDraft[`audience_${item.idx}`] ?? item.name}
+                                  onChange={(e) => setEditDraft(prev => ({ ...prev, [`audience_${item.idx}`]: e.target.value }))}
+                                  className="w-full px-2 py-1 border border-gray-300 rounded text-xs text-gray-900 outline-none focus:ring-2 focus:ring-black/10"
+                                />
+                              ) : (<>
+                                <div className="text-sm font-medium text-gray-900">{item.name} — {meta.time}</div>
+                                <div className="text-[11px] text-gray-400 mt-0.5">{meta.subtitle}</div>
+                                <div className="flex gap-1.5 mt-1.5">
+                                  {meta.tags.map((tag, i) => (
+                                    <span key={i} className="text-[10px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{tag}</span>
+                                  ))}
+                                </div>
+                              </>)}
+                            </div>
+                            <div>
+                              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-1">
+                                <div className="h-full bg-gray-600 rounded-full" style={{ width: `${meta.spendPct}%` }} />
+                              </div>
+                              <span className="text-xs text-gray-500">~{meta.spendPct}% of Spend</span>
+                            </div>
+                            <div className="flex flex-col items-center gap-1">
+                              <div className="flex gap-0.5">
+                                {[1,2,3,4,5].map((i) => (
+                                  <div key={i} className={`w-3 h-2 rounded-sm ${
+                                    i <= (meta.reach === 'High' ? 5 : meta.reach === 'Medium' ? 3 : meta.reach === 'Broad' ? 4 : 2)
+                                      ? (i <= 2 ? 'bg-green-500' : i <= 4 ? 'bg-yellow-400' : 'bg-red-400')
+                                      : 'bg-gray-200'
+                                  }`} />
+                                ))}
+                              </div>
+                              <span className="text-[11px] text-gray-500">{meta.reach}</span>
+                            </div>
+                            <div><span className="text-xs text-gray-600">{meta.goal}</span></div>
+                            <div className="text-right"><span className="text-xs font-medium text-gray-900">{meta.roas} ROAS</span></div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-                );
-              }) : (
-                <div className="col-span-2">
-                  <p className="text-sm text-gray-400 italic m-0">No audiences defined yet.</p>
-                </div>
-              )}
-            </div>
+                )}
+              </>);
+            })() : (
+              <p className="text-sm text-gray-400 italic m-0">No audiences defined yet.</p>
+            )}
             {editingSection === 'Targeting' && (
               <div className="flex gap-2 justify-end mt-4">
                 <button onClick={() => { setEditingSection(null); setEditDraft({}); }} className="px-3.5 py-1.5 bg-white border border-gray-200 rounded-lg text-[13px] text-gray-700 cursor-pointer hover:bg-gray-50">Cancel</button>
@@ -1544,6 +1703,29 @@ export const BlueprintDetailView: React.FC<BlueprintDetailViewProps> = ({
               )}
             </div>
           </div>
+
+          {/* Performance Guardrails (Optional) */}
+          {(() => {
+            const activeProgram = useProgramStore.getState().activeProgram;
+            return (
+              <PerformanceGuardrailsSection
+                guardrails={activeProgram?.performanceGuardrails}
+                onSave={(guardrails) => {
+                  const store = useProgramStore.getState();
+                  if (store.activeProgram) {
+                    store.setPerformanceGuardrails(guardrails);
+                  }
+                }}
+                onClear={() => {
+                  const store = useProgramStore.getState();
+                  if (store.activeProgram) {
+                    store.clearPerformanceGuardrails();
+                  }
+                }}
+                blueprint={local}
+              />
+            );
+          })()}
 
           {/* Timeline Section */}
           <div className="bg-white rounded-xl px-5 py-4 shadow-sm relative">

@@ -42,7 +42,7 @@ function defaultSteps(): ProgramStep[] {
 function defaultChannels(): ProgramChannelConfig[] {
   return [
     { platform: 'meta', enabled: true, launchConfigIds: [], isConfigured: false },
-    { platform: 'google', enabled: false, launchConfigIds: [], isConfigured: false },
+    { platform: 'google', enabled: true, launchConfigIds: [], isConfigured: false },
     { platform: 'tiktok', enabled: false, launchConfigIds: [], isConfigured: false },
     { platform: 'snapchat', enabled: false, launchConfigIds: [], isConfigured: false },
     { platform: 'pinterest', enabled: false, launchConfigIds: [], isConfigured: false },
@@ -626,6 +626,11 @@ interface ProgramState {
   // Status
   updateStatus: (status: ProgramStatus) => void;
 
+  // Performance guardrails
+  setPerformanceGuardrails: (guardrails: import('../types/program').PerformanceGuardrails) => void;
+  clearPerformanceGuardrails: () => void;
+  setPerformanceGuardrailsById: (programId: string, guardrails: import('../types/program').PerformanceGuardrails) => void;
+
   // Chat
   linkChatSession: (sessionId: string, historyKey?: string) => void;
 
@@ -654,26 +659,34 @@ export const useProgramStore = create<ProgramState>((set, get) => ({
   // ── Load ─────────────────────────────────────────────────────────────────
 
   loadPrograms: () => {
-    // Seed demo programs — insert if missing, update if step data is stale
+    // Fast path: if already loaded this session, just re-read from storage
+    const currentPrograms = get().programs;
+    if (currentPrograms.length > 0) {
+      set({ programs: programStorage.listPrograms() });
+      return;
+    }
+
+    // First load: seed demo data
     const existingPrograms = programStorage.listPrograms();
     const existingById = new Map(existingPrograms.map((p) => [p.id, p]));
     const demos = buildDemoPrograms();
     let seeded = false;
     for (const demo of demos) {
-      // Always overwrite demo programs from canonical definition
-      programStorage.saveProgram(demo);
-      if (!existingById.has(demo.id)) seeded = true;
+      if (!existingById.has(demo.id)) {
+        programStorage.saveProgram(demo);
+        seeded = true;
+      }
     }
-    // Force reload if any new demos were added
-    if (seeded) { /* will reload below */ }
 
-    // Seed demo launch configs — always overwrite from canonical definition
-    for (const config of DEMO_LAUNCH_CONFIGS) {
-      launchConfigStorage.saveConfig(config);
+    // Seed demo launch configs only if new demos were added
+    if (seeded) {
+      for (const config of DEMO_LAUNCH_CONFIGS) {
+        launchConfigStorage.saveConfig(config);
+      }
     }
 
     // Seed demo blueprints via IPC (async, non-blocking)
-    if (window.aiSuites?.blueprints) {
+    if (seeded && window.aiSuites?.blueprints) {
       Promise.resolve().then(async () => {
         try {
           const existing = await window.aiSuites!.blueprints.list();
@@ -696,7 +709,6 @@ export const useProgramStore = create<ProgramState>((set, get) => ({
     let nameFixed = false;
     for (const program of programs) {
       if (!program.briefSnapshot) continue;
-      // Skip programs already named meaningfully (created after the fix)
       if (program.name === 'New Campaign' || program.name.length > 40 || /^(extract|create|plan|build|design|make|generate|help|write|draft)\b/i.test(program.name)) {
         const betterName = deriveProgramName(program.briefSnapshot);
         if (betterName && betterName !== program.name) {
@@ -1134,6 +1146,38 @@ export const useProgramStore = create<ProgramState>((set, get) => ({
     if (editBrief) navigationState.editBrief = true;
 
     return { program, targetRoute, navigationState };
+  },
+
+  // ── Performance Guardrails ───────────────────────────────────────────────
+
+  setPerformanceGuardrails: (guardrails) => {
+    const { activeProgram } = get();
+    if (!activeProgram) return;
+    const updated = { ...activeProgram, performanceGuardrails: { ...guardrails, setAt: new Date().toISOString() }, updatedAt: new Date().toISOString() };
+    set({ activeProgram: updated });
+    programStorage.saveProgram(updated);
+    set({ programs: programStorage.listPrograms() });
+  },
+
+  clearPerformanceGuardrails: () => {
+    const { activeProgram } = get();
+    if (!activeProgram) return;
+    const updated = { ...activeProgram, performanceGuardrails: undefined, updatedAt: new Date().toISOString() };
+    set({ activeProgram: updated });
+    programStorage.saveProgram(updated);
+    set({ programs: programStorage.listPrograms() });
+  },
+
+  setPerformanceGuardrailsById: (programId, guardrails) => {
+    const program = get().programs.find(p => p.id === programId);
+    if (!program) return;
+    const updated = { ...program, performanceGuardrails: { ...guardrails, setAt: new Date().toISOString() }, updatedAt: new Date().toISOString() };
+    programStorage.saveProgram(updated);
+    const isActive = get().activeProgramId === programId;
+    set({
+      programs: programStorage.listPrograms(),
+      ...(isActive ? { activeProgram: updated } : {}),
+    });
   },
 
   // ── Internal ─────────────────────────────────────────────────────────────

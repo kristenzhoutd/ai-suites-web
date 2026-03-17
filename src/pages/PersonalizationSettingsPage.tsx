@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAppStore } from '../stores/appStore';
+import IntegrationCard from '../components/settings/IntegrationCard';
 
 type AemState = 'disconnected' | 'configuring' | 'connecting' | 'connected' | 'error';
 
@@ -29,14 +30,13 @@ export default function PersonalizationSettingsPage() {
 
   // Check AEM status and load saved config on mount
   useEffect(() => {
-    window.aiSuites.aem.status().then((res) => {
+    window.aiSuites?.aem?.status().then((res) => {
       if (res.success && res.data?.connected) {
         setAemState('connected');
         setAemHost(res.data.host || '');
       }
     });
-    // Load saved AEM config to pre-populate form
-    window.aiSuites.settings.get().then((settings: any) => {
+    window.aiSuites?.settings?.get().then((settings: any) => {
       const saved = settings.aemConfig;
       if (saved) {
         setAemConfig((prev) => ({
@@ -56,7 +56,7 @@ export default function PersonalizationSettingsPage() {
   }, []);
 
   const handleAemSave = useCallback(async () => {
-    await window.aiSuites.settings.set({ aemConfig });
+    await window.aiSuites?.settings?.set({ aemConfig });
     setAemSaved(true);
     setTimeout(() => setAemSaved(false), 2000);
   }, [aemConfig]);
@@ -89,7 +89,7 @@ export default function PersonalizationSettingsPage() {
     setAemState('connecting');
     setAemError('');
 
-    const result = await window.aiSuites.aem.connect(aemConfig);
+    const result = await window.aiSuites?.aem?.connect(aemConfig);
     if (result.success) {
       setAemState('connected');
       setAemHost(aemConfig.host);
@@ -100,11 +100,9 @@ export default function PersonalizationSettingsPage() {
   }, [aemConfig]);
 
   const handleAemDisconnect = useCallback(async () => {
-    await window.aiSuites.aem.disconnect();
+    await window.aiSuites?.aem?.disconnect();
     setAemState('disconnected');
     setAemHost('');
-    // Keep aemConfig populated — credentials stay in the form so users
-    // don't have to re-enter them when reconnecting.
   }, []);
 
   const snippetCode = `<!-- Web Personalization Snippet -->
@@ -120,22 +118,18 @@ export default function PersonalizationSettingsPage() {
   })(window, document, 'script', 'wpt');
 </script>`;
 
-  const otherIntegrations = [
-    { name: 'Bynder', description: 'Digital Asset Management', connected: false },
-  ];
-
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="px-6 py-4 border-b border-gray-200 bg-white">
-        <h2 className="text-lg font-semibold text-gray-900">Personalization Settings</h2>
-        <p className="text-sm text-gray-500">Configure your personalization suite settings</p>
-      </div>
+    <div className="h-full overflow-hidden flex">
+      <div className="flex-1 flex flex-col overflow-y-auto px-6 py-4 space-y-4">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Settings</h2>
+          <p className="text-xs text-gray-400 mt-0.5">Configure your personalization suite settings</p>
+        </div>
 
-      <div className="p-6 space-y-6 max-w-3xl">
         {/* Installation Snippet */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="font-medium text-gray-900 mb-2">Installation Snippet</h3>
-          <p className="text-sm text-gray-500 mb-4">
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <h3 className="text-base font-semibold text-gray-900 mb-1">Installation snippet</h3>
+          <p className="text-xs text-gray-400 mb-4">
             Add this code snippet to your website&apos;s &lt;head&gt; tag to enable personalization.
           </p>
           <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
@@ -143,66 +137,53 @@ export default function PersonalizationSettingsPage() {
           </div>
           <button
             onClick={() => navigator.clipboard.writeText(snippetCode)}
-            className="mt-3 text-sm text-primary-600 hover:text-primary-700"
+            className="mt-3 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-black/60 bg-transparent rounded-lg border border-black/15 hover:bg-black/5 hover:text-black transition-colors cursor-pointer"
           >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
             Copy to clipboard
           </button>
         </div>
 
         {/* Integrations */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="font-medium text-gray-900 mb-2">Integrations</h3>
-          <p className="text-sm text-gray-500 mb-4">
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <h3 className="text-base font-semibold text-gray-900 mb-1">Integrations</h3>
+          <p className="text-xs text-gray-400 mb-4">
             Connect external services to enhance personalization.
           </p>
-          <div className="grid grid-cols-2 gap-4">
-            {/* Adobe AEM — functional card */}
-            <div className="border border-gray-200 rounded-lg p-4 col-span-2">
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-medium text-gray-900">Adobe AEM</span>
-                {aemState === 'connected' ? (
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1 text-xs text-green-600">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                      Connected
-                    </span>
-                    <button
-                      onClick={handleAemDisconnect}
-                      className="text-xs text-red-500 hover:text-red-600"
-                    >
-                      Disconnect
-                    </button>
-                  </div>
-                ) : aemState === 'connecting' ? null
-                  : aemState === 'configuring' || aemState === 'error' ? null : (
-                  <button
-                    onClick={() => setAemState('configuring')}
-                    className="text-xs text-primary-600 hover:text-primary-700"
-                  >
-                    Connect
-                  </button>
-                )}
-              </div>
-              <p className="text-xs text-gray-500">Digital Asset Management</p>
 
+          <div className="grid grid-cols-3 gap-4">
+            {/* Adobe AEM */}
+            <IntegrationCard
+              name="Adobe Experience Manager"
+              description="Digital asset management for brand-approved content."
+              icon={
+                <img src="/adobe-icon.png" alt="Adobe" className="w-6 h-6" />
+              }
+              connected={aemState === 'connected'}
+              onConnect={() => setAemState('configuring')}
+              onDisconnect={handleAemDisconnect}
+              connecting={aemState === 'connecting'}
+            >
               {/* Connected info */}
               {aemState === 'connected' && aemHost && (
-                <p className="text-xs text-gray-400 mt-2 font-mono">{aemHost}</p>
+                <p className="text-xs text-gray-400 font-mono">{aemHost}</p>
               )}
 
-              {/* Connecting state — waiting for browser sign-in */}
+              {/* Connecting state */}
               {aemState === 'connecting' && (
-                <div className="mt-3 flex items-center gap-3">
+                <div className="flex items-center gap-3">
                   {aemConfig.authMethod === 'oauth' ? (
                     <>
-                      <svg className="animate-spin h-4 w-4 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <svg className="animate-spin h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                       </svg>
-                      <span className="text-xs text-gray-600">Waiting for Adobe sign-in in your browser...</span>
+                      <span className="text-xs text-gray-500">Waiting for Adobe sign-in...</span>
                       <button
                         onClick={() => { setAemState('configuring'); setAemError(''); }}
-                        className="text-xs text-red-500 hover:text-red-600 ml-auto"
+                        className="text-xs text-red-500 hover:text-red-600 ml-auto bg-transparent border-none cursor-pointer"
                       >
                         Cancel
                       </button>
@@ -215,42 +196,35 @@ export default function PersonalizationSettingsPage() {
 
               {/* Config form */}
               {(aemState === 'configuring' || aemState === 'error') && (
-                <div className="mt-3 space-y-2">
+                <div className="space-y-2">
                   {/* Auth Method Toggle */}
                   <div className="flex items-center gap-2">
                     <label className="text-xs text-gray-600 w-24 shrink-0">Auth Method</label>
                     <div className="flex rounded-lg border border-gray-200 overflow-hidden">
-                      <button
-                        onClick={() => setAemConfig({ ...aemConfig, authMethod: 'token' })}
-                        className={`px-3 py-1.5 text-xs font-medium transition-colors ${aemConfig.authMethod === 'token' ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-                      >
-                        Access Token
-                      </button>
-                      <button
-                        onClick={() => setAemConfig({ ...aemConfig, authMethod: 'oauth' })}
-                        className={`px-3 py-1.5 text-xs font-medium transition-colors ${aemConfig.authMethod === 'oauth' ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-                      >
-                        OAuth Web App
-                      </button>
-                      <button
-                        onClick={() => setAemConfig({ ...aemConfig, authMethod: 's2s' })}
-                        className={`px-3 py-1.5 text-xs font-medium transition-colors ${aemConfig.authMethod === 's2s' ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-                      >
-                        OAuth Server-to-Server
-                      </button>
+                      {(['token', 'oauth', 's2s'] as const).map((method) => (
+                        <button
+                          key={method}
+                          onClick={() => setAemConfig({ ...aemConfig, authMethod: method })}
+                          className={`px-3 py-1.5 text-xs font-medium transition-colors border-none cursor-pointer ${
+                            aemConfig.authMethod === method
+                              ? 'bg-black text-white'
+                              : 'bg-white text-gray-600 hover:bg-gray-50'
+                          }`}
+                        >
+                          {method === 'token' ? 'Access Token' : method === 'oauth' ? 'OAuth Web App' : 'OAuth Server-to-Server'}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Host URL — all methods */}
                   <input
                     type="url"
                     placeholder="AEM Host URL (https://author-p...-e....adobeaemcloud.com)"
                     value={aemConfig.host}
                     onChange={(e) => setAemConfig({ ...aemConfig, host: e.target.value })}
-                    className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-300"
+                    className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-gray-400"
                   />
 
-                  {/* Access Token method — just the token */}
                   {aemConfig.authMethod === 'token' && (
                     <>
                       <input
@@ -258,15 +232,14 @@ export default function PersonalizationSettingsPage() {
                         placeholder="Access Token"
                         value={aemConfig.accessToken}
                         onChange={(e) => setAemConfig({ ...aemConfig, accessToken: e.target.value })}
-                        className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-300"
+                        className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-gray-400"
                       />
-                      <p className="text-xs text-gray-400">
-                        Paste a Bearer token from Adobe Developer Console or another source. Token refresh is not supported — reconnect when expired.
+                      <p className="text-[11px] text-gray-400">
+                        Paste a Bearer token from Adobe Developer Console. Token refresh is not supported — reconnect when expired.
                       </p>
                     </>
                   )}
 
-                  {/* OAuth / S2S methods — Client ID, Client Secret, Scopes */}
                   {aemConfig.authMethod !== 'token' && (
                     <>
                       <input
@@ -274,37 +247,34 @@ export default function PersonalizationSettingsPage() {
                         placeholder="Client ID (API Key)"
                         value={aemConfig.clientId}
                         onChange={(e) => setAemConfig({ ...aemConfig, clientId: e.target.value })}
-                        className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-300"
+                        className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-gray-400"
                       />
                       <input
                         type="password"
                         placeholder={aemConfig.authMethod === 'oauth' ? 'Client Secret (optional for public clients)' : 'Client Secret'}
                         value={aemConfig.clientSecret}
                         onChange={(e) => setAemConfig({ ...aemConfig, clientSecret: e.target.value })}
-                        className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-300"
+                        className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-gray-400"
                       />
                       <input
                         type="text"
                         placeholder={aemConfig.authMethod === 'oauth' ? 'Scopes (default: openid,AdobeID)' : 'Scopes (optional, comma-separated)'}
                         value={aemConfig.scopes}
                         onChange={(e) => setAemConfig({ ...aemConfig, scopes: e.target.value })}
-                        className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-300"
+                        className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-gray-400"
                       />
-
-                      {/* OAuth redirect URI note */}
                       {aemConfig.authMethod === 'oauth' && (
-                        <p className="text-xs text-gray-400">
-                          Ensure <code className="bg-gray-100 px-1 py-0.5 rounded text-gray-600">https://localhost:3000/oauth/callback</code> is registered as a redirect URI in your Adobe Developer Console project.
+                        <p className="text-[11px] text-gray-400">
+                          Ensure <code className="bg-gray-100 px-1 py-0.5 rounded text-gray-600">https://localhost:3000/oauth/callback</code> is registered as a redirect URI.
                         </p>
                       )}
                     </>
                   )}
 
-                  {/* Advanced options */}
                   <button
                     type="button"
                     onClick={() => setShowAdvanced(!showAdvanced)}
-                    className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+                    className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1 bg-transparent border-none cursor-pointer p-0"
                   >
                     <svg className={`w-3 h-3 transition-transform ${showAdvanced ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -314,33 +284,30 @@ export default function PersonalizationSettingsPage() {
 
                   {showAdvanced && (
                     <div className="space-y-2 pl-4 border-l-2 border-gray-100">
-                      {/* API Version Dropdown */}
                       <div className="flex items-center gap-2">
                         <label className="text-xs text-gray-600 w-24 shrink-0">API Version</label>
                         <select
                           value={aemConfig.apiVersion}
                           onChange={(e) => setAemConfig({ ...aemConfig, apiVersion: e.target.value as 'legacy' | 'openapi' })}
-                          className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-300 bg-white"
+                          className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-gray-400 bg-white"
                         >
                           <option value="legacy">Legacy (all AEM versions)</option>
                           <option value="openapi">OpenAPI (AEMaaCS 2024.10+)</option>
                         </select>
                       </div>
-                      {/* IMS Org ID — optional */}
                       <input
                         type="text"
                         placeholder="IMS Org ID (optional, e.g., ABC123@AdobeOrg)"
                         value={aemConfig.imsOrgId}
                         onChange={(e) => setAemConfig({ ...aemConfig, imsOrgId: e.target.value })}
-                        className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-300"
+                        className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-gray-400"
                       />
-                      {/* Delivery Base URL */}
                       <input
                         type="url"
                         placeholder="Delivery Base URL (optional, for public asset URLs)"
                         value={aemConfig.deliveryBaseUrl}
                         onChange={(e) => setAemConfig({ ...aemConfig, deliveryBaseUrl: e.target.value })}
-                        className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-300"
+                        className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-gray-400"
                       />
                     </div>
                   )}
@@ -351,43 +318,36 @@ export default function PersonalizationSettingsPage() {
                   <div className="flex gap-2 pt-1">
                     <button
                       onClick={handleAemConnect}
-                      className="px-3 py-1.5 bg-primary-600 text-white text-xs font-medium rounded-lg hover:bg-primary-700 transition-colors"
+                      className="px-3 py-1.5 bg-black text-white text-xs font-medium rounded-lg hover:bg-gray-800 transition-colors border-none cursor-pointer"
                     >
                       {aemConfig.authMethod === 'oauth' ? 'Sign in with Adobe' : 'Connect'}
                     </button>
                     <button
                       onClick={handleAemSave}
-                      className="px-3 py-1.5 border border-gray-300 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                      className="px-3 py-1.5 border border-gray-200 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-50 transition-colors bg-transparent cursor-pointer"
                     >
                       {aemSaved ? 'Saved' : 'Save Settings'}
                     </button>
                     <button
                       onClick={() => { setAemState('disconnected'); setAemError(''); setShowAdvanced(false); }}
-                      className="px-3 py-1.5 text-gray-500 text-xs font-medium rounded-lg hover:bg-gray-100 transition-colors"
+                      className="px-3 py-1.5 text-gray-500 text-xs font-medium rounded-lg hover:bg-gray-100 transition-colors bg-transparent border-none cursor-pointer"
                     >
                       Cancel
                     </button>
                   </div>
                 </div>
               )}
-            </div>
+            </IntegrationCard>
 
-            {/* Other integrations — static */}
-            {otherIntegrations.map((integration) => (
-              <div key={integration.name} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-medium text-gray-900">{integration.name}</span>
-                  {integration.connected ? (
-                    <span className="text-xs text-green-600">Connected</span>
-                  ) : (
-                    <button className="text-xs text-primary-600 hover:text-primary-700">
-                      Connect
-                    </button>
-                  )}
-                </div>
-                <p className="text-xs text-gray-500">{integration.description}</p>
-              </div>
-            ))}
+            {/* Bynder */}
+            <IntegrationCard
+              name="Bynder"
+              description="Brand asset management and distribution platform."
+              icon={
+                <img src="/bynder-icon.svg" alt="Bynder" className="w-6 h-6" />
+              }
+              comingSoon
+            />
           </div>
         </div>
       </div>

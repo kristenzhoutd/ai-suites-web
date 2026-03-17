@@ -43,29 +43,9 @@
   height: 16px;
 }
 
-/* ========== Primary variant ========== */
+/* ========== Primary variant (underline) ========== */
 
 .tabs--primary .tabs__tab {
-  height: 32px;
-  padding: 0 16px;
-  border-radius: 4px;
-  font-weight: 400;
-  color: var(--text-secondary);
-}
-
-.tabs--primary .tabs__tab:hover {
-  color: var(--text-default);
-}
-
-.tabs--primary .tabs__tab--selected {
-  background-color: var(--surface-tab-selected);
-  font-weight: 600;
-  color: var(--text-default);
-}
-
-/* ========== Secondary variant ========== */
-
-.tabs--secondary .tabs__tab {
   height: 32px;
   padding: 8px 24px;
   font-weight: 400;
@@ -73,12 +53,12 @@
   border-bottom: 1px solid #dce1ea;
 }
 
-.tabs--secondary .tabs__tab:hover {
+.tabs--primary .tabs__tab:hover {
   font-weight: 600;
   color: var(--text-default);
 }
 
-.tabs--secondary .tabs__tab--selected {
+.tabs--primary .tabs__tab--selected {
   font-weight: 600;
   color: var(--text-default);
   border-bottom: 2px solid var(--border-tab-selected);
@@ -89,4 +69,24 @@
   flex: 1;
   height: 32px;
   border-bottom: 1px solid #dce1ea;
+}
+
+/* ========== Secondary variant (pill) ========== */
+
+.tabs--secondary .tabs__tab {
+  height: 32px;
+  padding: 0 16px;
+  border-radius: 4px;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.tabs--secondary .tabs__tab:hover {
+  color: var(--text-default);
+}
+
+.tabs--secondary .tabs__tab--selected {
+  background-color: var(--surface-tab-selected);
+  font-weight: 600;
+  color: var(--text-default);
 }

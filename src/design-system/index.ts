@@ -10,7 +10,7 @@ export {
   Helptext,
   TextField,
   TextArea,
-  Select,
+
   Checkbox,
   Radio,
   Toggle,
@@ -20,11 +20,14 @@ export type {
   HelptextProps,
   TextFieldProps,
   TextAreaProps,
-  SelectProps,
+
   CheckboxProps,
   RadioProps,
   ToggleProps,
 } from './components/InputField';
+
+export { Combobox } from './components/Combobox';
+export type { ComboboxProps, ComboboxOption } from './components/Combobox';
 
 export { Tag } from './components/Tag/Tag';
 export type { TagProps } from './components/Tag/Tag';

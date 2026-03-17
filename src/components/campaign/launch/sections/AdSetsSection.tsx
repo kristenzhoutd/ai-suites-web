@@ -2,6 +2,7 @@
  * Ad Sets section — targeting, audiences, budgets, optimization goals.
  */
 
+import { Target } from 'lucide-react';
 import type { CampaignLaunchPageState } from '../../../../hooks/useCampaignLaunchPageState';
 import {
   OBJECTIVE_OPTIMIZATION_GOALS,
@@ -26,7 +27,7 @@ export default function AdSetsSection({ state }: Props) {
         </h2>
         <button
           onClick={addAdSet}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#1957DB] bg-[#EFF6FF] rounded-lg hover:bg-[#DBEAFE] transition-colors border-none cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-black/60 bg-transparent rounded-lg border border-black/15 hover:bg-black/5 hover:text-black transition-colors cursor-pointer"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -35,10 +36,28 @@ export default function AdSetsSection({ state }: Props) {
         </button>
       </div>
       <div className="flex flex-col gap-3">
-        {config.adSets.map((adSet) => (
+        {config.adSets.length === 0 && (
+          <div className="flex flex-col items-center justify-center text-center min-h-[60vh]">
+            <div className="w-16 h-16 rounded-full bg-black/[0.06] flex items-center justify-center mb-3">
+              <Target className="w-7 h-7 text-black/25" strokeWidth={1.5} />
+            </div>
+            <p className="text-sm text-black/40 mb-3">No ad sets yet</p>
+            <button
+              onClick={addAdSet}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-black/60 bg-transparent rounded-lg border border-black/15 hover:bg-black/5 hover:text-black transition-colors cursor-pointer"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Ad Set
+            </button>
+          </div>
+        )}
+        {config.adSets.map((adSet, index) => (
           <div key={adSet.localId} className="bg-white rounded-xl shadow-sm px-6 py-5">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-md bg-black/5 flex items-center justify-center text-[10px] font-semibold text-black/50 flex-shrink-0">{index + 1}</span>
                 <span className="text-xs font-medium text-gray-400 uppercase">{adSet.audienceLabel}</span>
                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#00B140]/10 text-[9px] font-medium text-[#00B140]" title="Audience will be enriched via LiveRamp">
                   <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

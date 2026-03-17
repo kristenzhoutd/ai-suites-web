@@ -467,8 +467,11 @@ ${enrichedContent}`;
     }
 
     // When on the campaign launch page, inject current config for refine-ad-config skill
+    // Skip this enrichment for Google prompts — they carry their own context
+    const isGoogleLaunchPrompt = enrichedContent.includes('[google-launch-config-gen]')
+      || enrichedContent.includes('[google-launch-config-update]');
     const isLaunchPage = pageContext === 'campaign-launch';
-    if (isLaunchPage) {
+    if (isLaunchPage && !isGoogleLaunchPrompt) {
       const launchStore = useCampaignLaunchStore.getState();
       if (launchStore.isInitialized) {
         const { campaign, adSets, creatives, ads } = launchStore.config;
@@ -1919,6 +1922,19 @@ ${enrichedContent}`;
               useCampaignLaunchStore.getState().applySkillUpdate(updateData);
             }
             if (runId) trace.addEvent(runId, 'ui_update', 'Launch config updated from AI');
+            break;
+          }
+          case 'google-launch-config': {
+            console.log('[ChatStore] Google launch config generated from AI');
+            // Dispatch via custom event — the launch page listens for this
+            window.dispatchEvent(new CustomEvent('google-launch-config', { detail: skillResult.data }));
+            if (runId) trace.addEvent(runId, 'ui_update', 'Google launch config generated from AI');
+            break;
+          }
+          case 'google-launch-config-update': {
+            console.log('[ChatStore] Google launch config updated from AI');
+            window.dispatchEvent(new CustomEvent('google-launch-config-update', { detail: skillResult.data }));
+            if (runId) trace.addEvent(runId, 'ui_update', 'Google launch config updated from AI');
             break;
           }
           case 'company-context': {

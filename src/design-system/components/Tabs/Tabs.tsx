@@ -59,7 +59,7 @@ export const Tabs = ({
           </button>
         );
       })}
-      {variant === 'secondary' && <div className="tabs__spacer" />}
+      {variant === 'primary' && <div className="tabs__spacer" />}
     </div>
   );
 };

@@ -45,7 +45,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// --- Primary ---
+// --- Primary (underline) ---
 
 export const Primary: Story = {
   args: {
@@ -55,7 +55,7 @@ export const Primary: Story = {
   },
 };
 
-// --- Secondary ---
+// --- Secondary (pill) ---
 
 export const Secondary: Story = {
   args: {

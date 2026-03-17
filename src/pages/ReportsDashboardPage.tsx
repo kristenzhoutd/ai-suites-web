@@ -471,7 +471,7 @@ export default function ReportsDashboardPage() {
       </div>
 
       {/* Main column */}
-      <div className={`flex-1 flex flex-col overflow-y-auto bg-white border border-gray-100 relative ${!isChatCollapsed ? 'rounded-r-2xl' : 'rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)]'}`}>
+      <div className={`flex-1 flex flex-col overflow-y-auto bg-white border border-gray-100 relative ${!isChatCollapsed ? 'rounded-r-2xl' : 'rounded-2xl'}`}>
         {/* Chat toggle (shown when collapsed) */}
         {isChatCollapsed && (
           <button

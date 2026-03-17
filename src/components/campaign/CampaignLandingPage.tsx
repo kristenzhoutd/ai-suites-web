@@ -139,7 +139,7 @@ export default function CampaignLandingPage() {
   useEffect(() => {
     const briefParam = searchParams.get('brief');
     if (briefParam) {
-      setBriefText(decodeURIComponent(briefParam));
+      setBriefText(briefParam);
     }
   }, [searchParams]);
 

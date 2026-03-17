@@ -1,10 +1,11 @@
-import type { InputHTMLAttributes } from 'react';
+import { useId, type InputHTMLAttributes } from 'react';
 import { CircleHelpIcon, WarningIcon } from '../../icons/Icons';
 import './InputField.css';
 
 export interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   helpText?: string;
+  errorMessage?: string;
   status?: 'default' | 'error' | 'warning';
   required?: boolean;
   showHelpIcon?: boolean;
@@ -13,13 +14,20 @@ export interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
 export const TextField = ({
   label,
   helpText,
+  errorMessage,
   status = 'default',
   required = false,
   showHelpIcon = false,
   className = '',
-  id,
+  id: externalId,
   ...props
 }: TextFieldProps) => {
+  const autoId = useId();
+  const id = externalId || autoId;
+  const descriptionId = helpText ? `${id}-description` : undefined;
+  const errorId = errorMessage && status === 'error' ? `${id}-error` : undefined;
+  const describedBy = [descriptionId, errorId].filter(Boolean).join(' ') || undefined;
+
   const fieldClasses = ['field', status !== 'default' ? `field--${status}` : '', className]
     .filter(Boolean)
     .join(' ');
@@ -29,8 +37,18 @@ export const TextField = ({
     .join(' ');
 
   const inputElement = (
-    <input id={id} type="text" className={inputClasses} required={required} {...props} />
+    <input
+      id={id}
+      type="text"
+      className={inputClasses}
+      required={required}
+      aria-invalid={status === 'error' || undefined}
+      aria-describedby={describedBy}
+      {...props}
+    />
   );
+
+  const displayMessage = status === 'error' && errorMessage ? errorMessage : helpText;
 
   return (
     <div className={fieldClasses}>
@@ -53,7 +71,15 @@ export const TextField = ({
       ) : (
         inputElement
       )}
-      {helpText && <span className="field__help-text">{helpText}</span>}
+      {displayMessage && (
+        <span
+          className="field__help-text"
+          id={errorId || descriptionId}
+          role={status === 'error' ? 'alert' : undefined}
+        >
+          {displayMessage}
+        </span>
+      )}
     </div>
   );
 };

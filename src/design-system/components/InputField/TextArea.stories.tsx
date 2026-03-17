@@ -1,5 +1,18 @@
+import { useEffect, useRef } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { TextArea } from './TextArea';
+import { TextArea, type TextAreaProps } from './TextArea';
+
+const AutoFocusTextArea = (props: TextAreaProps) => {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    ref.current?.querySelector('textarea')?.focus();
+  }, []);
+  return (
+    <div ref={ref}>
+      <TextArea {...props} />
+    </div>
+  );
+};
 
 const meta = {
   title: 'Components/Text Area',
@@ -7,6 +20,13 @@ const meta = {
   parameters: {
     layout: 'centered',
   },
+  decorators: [
+    (Story) => (
+      <div style={{ width: 280 }}>
+        <Story />
+      </div>
+    ),
+  ],
   tags: ['autodocs'],
   argTypes: {
     label: {
@@ -63,8 +83,8 @@ export const Default: Story = {
 export const Active: Story = {
   args: {
     defaultValue: 'Enter description',
-    autoFocus: true,
   },
+  render: (args) => <AutoFocusTextArea {...args} />,
 };
 
 export const Disabled: Story = {

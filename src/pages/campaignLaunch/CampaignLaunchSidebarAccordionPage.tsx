@@ -17,8 +17,12 @@ import CampaignSettingsSection from '../../components/campaign/launch/sections/C
 import AdSetsSection from '../../components/campaign/launch/sections/AdSetsSection';
 import CreativesSection from '../../components/campaign/launch/sections/CreativesSection';
 import AdsSection from '../../components/campaign/launch/sections/AdsSection';
-import { LAUNCH_SECTIONS, LAUNCH_SKELETON_SECTIONS } from './constants';
-import type { LaunchSectionId } from './constants';
+import GoogleCampaignSettingsSection from '../../components/campaign/launch/sections/GoogleCampaignSettingsSection';
+import GoogleAdGroupsSection from '../../components/campaign/launch/sections/GoogleAdGroupsSection';
+import GoogleAssetsSection from '../../components/campaign/launch/sections/GoogleAssetsSection';
+import GoogleAdsSection from '../../components/campaign/launch/sections/GoogleAdsSection';
+import { LAUNCH_SECTIONS, LAUNCH_SKELETON_SECTIONS, GOOGLE_LAUNCH_SECTIONS } from './constants';
+import type { LaunchSectionId, GoogleLaunchSectionId, GoogleLaunchConfig, GoogleAdGroup, GoogleAd, GoogleAsset } from './constants';
 import type { SavedLaunchConfig } from '../../types/campaignLaunch';
 
 function LaunchSkeleton() {
@@ -161,7 +165,7 @@ function NavAndContentPanels({
   return (
     <div ref={containerRef} className="flex h-full w-full">
       {/* Left nav — single card containing all campaigns */}
-      <div className="flex-shrink-0 overflow-y-auto p-5" style={{ width: navWidth }}>
+      <div className="flex-shrink-0 overflow-y-auto pl-5 pt-5 pb-5 pr-2" style={{ width: navWidth }}>
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
           {/* Card header */}
           <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-100">
@@ -169,7 +173,7 @@ function NavAndContentPanels({
             {activeProgram && (
               <button
                 onClick={handleCampaignConfigAdd}
-                className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium text-[#1957DB] bg-[#EFF6FF] hover:bg-[#DBEAFE] transition-colors border-none cursor-pointer"
+                className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium text-black bg-black/5 hover:bg-black/10 transition-colors border-none cursor-pointer"
                 title="Add campaign"
               >
                 <Plus className="w-3 h-3" />
@@ -195,21 +199,17 @@ function NavAndContentPanels({
               return (
                 <div key={campaign.id}>
                   {/* Campaign row */}
-                  <div className="group flex items-center">
+                  <div className="group flex items-center hover:bg-gray-50 transition-colors">
                     <button
                       onClick={() => handleNavCampaignClick(campaign.id)}
-                      className={`flex-1 flex items-center gap-2 px-3 py-2.5 text-left border-none cursor-pointer transition-colors ${
-                        isSelectedCampaign ? 'bg-[#F8FAFF]' : 'hover:bg-gray-50'
-                      }`}
+                      className="flex-1 flex items-center gap-2 px-3 py-2.5 text-left border-none cursor-pointer bg-transparent"
                     >
                       <ChevronRight className={`w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200 ${
                         isNavExpanded ? 'rotate-90' : ''
                       } ${isActiveCampaign ? 'text-[#1957DB]' : 'text-gray-400'}`} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className={`text-xs font-semibold truncate ${
-                            isSelectedCampaign ? 'text-[#1957DB]' : 'text-gray-800'
-                          }`}>
+                          <span className="text-xs font-semibold text-gray-800">
                             {campaign.name || campaign.config.campaign.name || 'Untitled'}
                           </span>
                           {isLaunched && (
@@ -219,14 +219,16 @@ function NavAndContentPanels({
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px] text-gray-400">
-                            {campaign.config.adSets.length} ad set{campaign.config.adSets.length !== 1 ? 's' : ''}
-                          </span>
-                          <span className="text-[10px] text-gray-400">
-                            {campaign.config.creatives.length} creative{campaign.config.creatives.length !== 1 ? 's' : ''}
-                          </span>
-                        </div>
+                        {!isNavExpanded && (
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[10px] text-gray-400">
+                              {campaign.config.adSets.length} ad set{campaign.config.adSets.length !== 1 ? 's' : ''}
+                            </span>
+                            <span className="text-[10px] text-gray-400">
+                              {campaign.config.creatives.length} creative{campaign.config.creatives.length !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </button>
                     {activeProgram && (
@@ -245,7 +247,7 @@ function NavAndContentPanels({
 
                   {/* Nested section links */}
                   {isNavExpanded && (
-                    <div className="bg-[#FAFBFC] px-2 py-1.5">
+                    <div className="px-2 pt-1.5 pb-3">
                       <div className="ml-4 pl-2.5 border-l border-gray-200 flex flex-col gap-0.5">
                         {LAUNCH_SECTIONS.map((section) => {
                           const isSelected = selection?.campaignId === campaign.id && selection?.sectionId === section.id;
@@ -260,14 +262,21 @@ function NavAndContentPanels({
                               onClick={() => handleNavSectionClick(campaign.id, section.id)}
                               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-left border-none cursor-pointer transition-colors ${
                                 isSelected
-                                  ? 'bg-[#EFF6FF] text-[#1957DB]'
-                                  : 'bg-transparent text-gray-500 hover:bg-white hover:text-gray-700'
+                                  ? 'bg-black/5 text-black'
+                                  : 'bg-transparent text-black/60 hover:bg-black/[0.04] hover:text-black'
                               }`}
                             >
-                              <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                                isComplete ? 'bg-green-500' : 'bg-gray-300'
-                              }`} />
-                              <span className={`text-[11px] font-medium ${isSelected ? 'text-[#1957DB]' : ''}`}>
+                              {/* Status indicator: completed = green check, active = blue dot, incomplete = gray ring */}
+                              {isComplete ? (
+                                <div className="w-3 h-3 rounded-full bg-green-500 flex-shrink-0 flex items-center justify-center">
+                                  <Check className="w-2 h-2 text-white" strokeWidth={3} />
+                                </div>
+                              ) : isSelected ? (
+                                <div className="w-3 h-3 rounded-full border-[1.5px] border-black flex-shrink-0" />
+                              ) : (
+                                <div className="w-3 h-3 rounded-full border-[1.5px] border-gray-300 flex-shrink-0" />
+                              )}
+                              <span className={`text-[11px] leading-[12px] font-medium ${isSelected ? 'text-black' : ''}`}>
                                 {section.label}
                               </span>
                               {isGenerating && (
@@ -275,8 +284,14 @@ function NavAndContentPanels({
                                   gen
                                 </span>
                               )}
-                              {isComplete && !isGenerating && (
-                                <Check className="w-3 h-3 text-green-500 flex-shrink-0 ml-auto" />
+                              {!isGenerating && section.id === 'adSets' && campaign.config.adSets.length > 0 && (
+                                <span className="text-[10px] text-gray-400 ml-auto">{campaign.config.adSets.length}</span>
+                              )}
+                              {!isGenerating && section.id === 'creatives' && campaign.config.creatives.length > 0 && (
+                                <span className="text-[10px] text-gray-400 ml-auto">{campaign.config.creatives.length}</span>
+                              )}
+                              {!isGenerating && section.id === 'ads' && campaign.config.ads.length > 0 && (
+                                <span className="text-[10px] text-gray-400 ml-auto">{campaign.config.ads.length}</span>
                               )}
                             </button>
                           );
@@ -302,7 +317,7 @@ function NavAndContentPanels({
       {/* Right panel — selected section form */}
       <div className="flex-1 overflow-y-auto min-w-0">
         {selection ? (
-          <div className="p-5">
+          <div className="pl-2 pt-5 pb-5 pr-5">
             {renderSelectedSection()}
           </div>
         ) : (
@@ -341,6 +356,157 @@ export default function CampaignLaunchSidebarAccordionPage() {
   const [selection, setSelection] = useState<NavSelection | null>(null);
   // Which campaigns have their nav sections expanded
   const [expandedNavCampaigns, setExpandedNavCampaigns] = useState<Set<string>>(new Set());
+
+  // ── Google Ads launch state ─────────────────────────────────────────────
+  const [googleConfig, setGoogleConfig] = useState<GoogleLaunchConfig>({
+    campaign: { name: '', campaignType: 'SEARCH', dailyBudgetMicros: 10_000_000, biddingStrategy: 'MAXIMIZE_CLICKS', status: 'PAUSED' },
+    adGroups: [],
+    assets: [],
+    ads: [],
+  });
+  const [googleSection, setGoogleSection] = useState<GoogleLaunchSectionId>('campaign');
+
+  // Listen for AI-generated Google config
+  useEffect(() => {
+    const handleGoogleConfig = (e: Event) => {
+      const data = (e as CustomEvent).detail as GoogleLaunchConfig;
+      if (data?.campaign) {
+        setGoogleConfig(data);
+        console.log('[CampaignLaunch] Google config received from AI');
+      }
+    };
+    const handleGoogleUpdate = (e: Event) => {
+      const update = (e as CustomEvent).detail;
+      if (update) {
+        setGoogleConfig((prev) => {
+          const next = { ...prev };
+          if (update.campaign) next.campaign = { ...next.campaign, ...update.campaign };
+          // Handle adGroup and ad operations (add/update/remove)
+          if (update.adGroups) {
+            for (const op of update.adGroups) {
+              if (op.operation === 'add') {
+                const { operation, ...rest } = op;
+                next.adGroups = [...next.adGroups, { localId: `local_ag_${Date.now()}`, ...rest } as GoogleAdGroup];
+              } else if (op.operation === 'remove' && op.localId) {
+                next.adGroups = next.adGroups.filter((ag) => ag.localId !== op.localId);
+              } else if (op.operation === 'update' && op.localId) {
+                const { operation, localId, ...rest } = op;
+                next.adGroups = next.adGroups.map((ag) => ag.localId === localId ? { ...ag, ...rest } as GoogleAdGroup : ag);
+              }
+            }
+          }
+          if (update.ads) {
+            for (const op of update.ads) {
+              if (op.operation === 'add') {
+                const { operation, ...rest } = op;
+                next.ads = [...next.ads, { localId: `local_ad_${Date.now()}`, ...rest } as GoogleAd];
+              } else if (op.operation === 'remove' && op.localId) {
+                next.ads = next.ads.filter((ad) => ad.localId !== op.localId);
+              } else if (op.operation === 'update' && op.localId) {
+                const { operation, localId, ...rest } = op;
+                next.ads = next.ads.map((ad) => ad.localId === localId ? { ...ad, ...rest } as GoogleAd : ad);
+              }
+            }
+          }
+          return next;
+        });
+        console.log('[CampaignLaunch] Google config updated from AI');
+      }
+    };
+    window.addEventListener('google-launch-config', handleGoogleConfig);
+    window.addEventListener('google-launch-config-update', handleGoogleUpdate);
+    return () => {
+      window.removeEventListener('google-launch-config', handleGoogleConfig);
+      window.removeEventListener('google-launch-config-update', handleGoogleUpdate);
+    };
+  }, []);
+
+  const updateGoogleCampaign = useCallback((patch: Partial<GoogleLaunchConfig['campaign']>) => {
+    setGoogleConfig((prev) => ({ ...prev, campaign: { ...prev.campaign, ...patch } }));
+  }, []);
+
+  const addGoogleAdGroup = useCallback(() => {
+    const id = `local_ag_${Date.now()}`;
+    setGoogleConfig((prev) => ({
+      ...prev,
+      adGroups: [...prev.adGroups, { localId: id, name: `Ad Group ${prev.adGroups.length + 1}`, status: 'PAUSED', cpcBidMicros: 1_000_000, keywords: [] }],
+    }));
+  }, []);
+
+  const updateGoogleAdGroup = useCallback((localId: string, patch: Partial<GoogleAdGroup>) => {
+    setGoogleConfig((prev) => ({
+      ...prev,
+      adGroups: prev.adGroups.map((ag) => ag.localId === localId ? { ...ag, ...patch } : ag),
+    }));
+  }, []);
+
+  const removeGoogleAdGroup = useCallback((localId: string) => {
+    setGoogleConfig((prev) => ({
+      ...prev,
+      adGroups: prev.adGroups.filter((ag) => ag.localId !== localId),
+      ads: prev.ads.filter((ad) => ad.adGroupLocalId !== localId),
+    }));
+  }, []);
+
+  const addGoogleAd = useCallback(() => {
+    const id = `local_ad_${Date.now()}`;
+    setGoogleConfig((prev) => ({
+      ...prev,
+      ads: [...prev.ads, {
+        localId: id,
+        adGroupLocalId: prev.adGroups[0]?.localId || '',
+        name: `Ad ${prev.ads.length + 1}`,
+        type: 'RESPONSIVE_SEARCH_AD',
+        responsiveSearchAd: { headlines: [''], descriptions: [''], finalUrls: [''] },
+        status: 'PAUSED',
+      }],
+    }));
+  }, []);
+
+  const updateGoogleAd = useCallback((localId: string, patch: Partial<GoogleAd>) => {
+    setGoogleConfig((prev) => ({
+      ...prev,
+      ads: prev.ads.map((ad) => ad.localId === localId ? { ...ad, ...patch } : ad),
+    }));
+  }, []);
+
+  const removeGoogleAd = useCallback((localId: string) => {
+    setGoogleConfig((prev) => ({ ...prev, ads: prev.ads.filter((ad) => ad.localId !== localId) }));
+  }, []);
+
+  const addGoogleAsset = useCallback((type: 'image' | 'logo') => {
+    const id = `local_asset_${Date.now()}`;
+    setGoogleConfig((prev) => ({
+      ...prev,
+      assets: [...prev.assets, { localId: id, name: type === 'logo' ? `Logo ${prev.assets.filter(a => a.type === 'logo').length + 1}` : `Image ${prev.assets.filter(a => a.type === 'image').length + 1}`, type }],
+    }));
+  }, []);
+
+  const updateGoogleAsset = useCallback((localId: string, patch: Partial<GoogleAsset>) => {
+    setGoogleConfig((prev) => ({
+      ...prev,
+      assets: prev.assets.map((a) => a.localId === localId ? { ...a, ...patch } : a),
+    }));
+  }, []);
+
+  const removeGoogleAsset = useCallback((localId: string) => {
+    setGoogleConfig((prev) => ({ ...prev, assets: prev.assets.filter((a) => a.localId !== localId) }));
+  }, []);
+
+  const handleGoogleAssetSelectFile = useCallback(async (localId: string) => {
+    const result = await window.aiSuites?.launch.selectFile();
+    if (result?.success && result.file) {
+      updateGoogleAsset(localId, {
+        file: {
+          fileName: result.file.fileName,
+          filePath: result.file.filePath,
+          fileSize: result.file.fileSize,
+          mimeType: result.file.mimeType,
+          previewUrl: result.file.previewUrl,
+        },
+      });
+    }
+  }, [updateGoogleAsset]);
 
   // Auto-select first campaign on init
   useEffect(() => {
@@ -459,7 +625,71 @@ export default function CampaignLaunchSidebarAccordionPage() {
             </div>
           ) : (
             <div className="flex h-full w-full">
-              {activeTab !== 'meta' ? (
+              {activeTab === 'google' ? (
+                <div className="flex h-full w-full">
+                  {/* Google nav sidebar */}
+                  <div className="flex-shrink-0 overflow-y-auto pl-5 pt-5 pb-5 pr-2" style={{ width: 240 }}>
+                    <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                      <div className="px-3 py-2.5 border-b border-gray-100">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Google Ads</span>
+                      </div>
+                      {GOOGLE_LAUNCH_SECTIONS.map((section) => (
+                        <button
+                          key={section.id}
+                          onClick={() => setGoogleSection(section.id)}
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-left border-none cursor-pointer transition-colors ${
+                            googleSection === section.id ? 'bg-black/5 text-black' : 'bg-transparent text-black/60 hover:bg-black/[0.04] hover:text-black'
+                          }`}
+                        >
+                          <span className={`text-[11px] leading-[12px] font-medium ${googleSection === section.id ? 'text-black' : ''}`}>
+                            {section.label}
+                          </span>
+                          {section.id === 'adGroups' && googleConfig.adGroups.length > 0 && (
+                            <span className="text-[10px] text-gray-400 ml-auto">{googleConfig.adGroups.length}</span>
+                          )}
+                          {section.id === 'assets' && googleConfig.assets.length > 0 && (
+                            <span className="text-[10px] text-gray-400 ml-auto">{googleConfig.assets.length}</span>
+                          )}
+                          {section.id === 'ads' && googleConfig.ads.length > 0 && (
+                            <span className="text-[10px] text-gray-400 ml-auto">{googleConfig.ads.length}</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Google content panel */}
+                  <div className="flex-1 overflow-y-auto pl-2 pt-5 pb-5 pr-5">
+                    {googleSection === 'campaign' && (
+                      <GoogleCampaignSettingsSection config={googleConfig} onUpdate={updateGoogleCampaign} />
+                    )}
+                    {googleSection === 'adGroups' && (
+                      <GoogleAdGroupsSection
+                        config={googleConfig}
+                        onAddAdGroup={addGoogleAdGroup}
+                        onUpdateAdGroup={updateGoogleAdGroup}
+                        onRemoveAdGroup={removeGoogleAdGroup}
+                      />
+                    )}
+                    {googleSection === 'assets' && (
+                      <GoogleAssetsSection
+                        config={googleConfig}
+                        onAddAsset={addGoogleAsset}
+                        onUpdateAsset={updateGoogleAsset}
+                        onRemoveAsset={removeGoogleAsset}
+                        onSelectFile={handleGoogleAssetSelectFile}
+                      />
+                    )}
+                    {googleSection === 'ads' && (
+                      <GoogleAdsSection
+                        config={googleConfig}
+                        onAddAd={addGoogleAd}
+                        onUpdateAd={updateGoogleAd}
+                        onRemoveAd={removeGoogleAd}
+                      />
+                    )}
+                  </div>
+                </div>
+              ) : activeTab !== 'meta' ? (
                 <div className="flex-1 flex flex-col items-center justify-center py-24 text-center">
                   <div className="w-16 h-16 rounded-2xl bg-[#F5F7FA] flex items-center justify-center mb-4">
                     <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -468,7 +698,7 @@ export default function CampaignLaunchSidebarAccordionPage() {
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-1">Coming Soon</h3>
                   <p className="text-sm text-[#464B55] max-w-sm">
-                    {{ google: 'Google Ads', tiktok: 'TikTok Ads', snapchat: 'Snapchat Ads', pinterest: 'Pinterest Ads' }[activeTab]} campaign launch will be available in a future update.
+                    {{ tiktok: 'TikTok Ads', snapchat: 'Snapchat Ads', pinterest: 'Pinterest Ads' }[activeTab as 'tiktok' | 'snapchat' | 'pinterest']} campaign launch will be available in a future update.
                   </p>
                 </div>
               ) : (

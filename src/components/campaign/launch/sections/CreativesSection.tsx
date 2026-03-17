@@ -2,7 +2,7 @@
  * Creatives section — images, headlines, body text, CTA, links, Facebook page selection.
  */
 
-import { Sparkles, Loader2, RefreshCw, Database } from 'lucide-react';
+import { Sparkles, Loader2, RefreshCw, Database, ImageIcon } from 'lucide-react';
 import { useBriefEditorStore } from '../../../../stores/briefEditorStore';
 import { useDamStore } from '../../../../stores/damStore';
 import type { CampaignLaunchPageState } from '../../../../hooks/useCampaignLaunchPageState';
@@ -54,7 +54,7 @@ export default function CreativesSection({ state }: Props) {
         </h2>
         <button
           onClick={addCreative}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#1957DB] bg-[#EFF6FF] rounded-lg hover:bg-[#DBEAFE] transition-colors border-none cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-black/60 bg-transparent rounded-lg border border-black/15 hover:bg-black/5 hover:text-black transition-colors cursor-pointer"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -63,10 +63,30 @@ export default function CreativesSection({ state }: Props) {
         </button>
       </div>
       <div className="flex flex-col gap-3">
-        {config.creatives.map((creative) => (
+        {config.creatives.length === 0 && (
+          <div className="flex flex-col items-center justify-center text-center min-h-[60vh]">
+            <div className="w-16 h-16 rounded-full bg-black/[0.06] flex items-center justify-center mb-3">
+              <ImageIcon className="w-7 h-7 text-black/25" strokeWidth={1.5} />
+            </div>
+            <p className="text-sm text-black/40 mb-3">No creatives yet</p>
+            <button
+              onClick={addCreative}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-black/60 bg-transparent rounded-lg border border-black/15 hover:bg-black/5 hover:text-black transition-colors cursor-pointer"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Creative
+            </button>
+          </div>
+        )}
+        {config.creatives.map((creative, index) => (
           <div key={creative.localId} className="bg-white rounded-xl shadow-sm px-6 py-5">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-medium text-gray-400 uppercase">{creative.name}</span>
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-md bg-black/5 flex items-center justify-center text-[10px] font-semibold text-black/50 flex-shrink-0">{index + 1}</span>
+                <span className="text-xs font-medium text-gray-400 uppercase">{creative.name}</span>
+              </div>
               {config.creatives.length > 1 && (
                 <button
                   onClick={() => removeCreative(creative.localId)}

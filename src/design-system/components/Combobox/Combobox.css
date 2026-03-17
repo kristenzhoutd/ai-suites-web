@@ -1,0 +1,204 @@
+/* ===== Combobox ===== */
+.combobox {
+  position: relative;
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Trigger button */
+.combobox__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 40px;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.75;
+  color: var(--text-default);
+  background-color: var(--surface-default);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    background-color 0.15s ease;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.combobox__trigger:focus {
+  box-shadow: 0 0 0 2px var(--border-focus);
+}
+
+.combobox__trigger--placeholder {
+  color: var(--text-placeholder);
+}
+
+.combobox__trigger--disabled {
+  background-color: var(--surface-disabled);
+  border-color: var(--border-disabled);
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.combobox__trigger--error {
+  background-color: var(--surface-error);
+  border-color: var(--border-error);
+}
+
+.combobox__trigger--error:focus {
+  box-shadow: 0 0 0 2px var(--border-error);
+}
+
+.combobox__trigger--warning {
+  background-color: var(--surface-warning);
+  border-color: var(--border-warning);
+}
+
+.combobox__trigger--warning:focus {
+  box-shadow: 0 0 0 2px var(--border-warning);
+}
+
+.combobox__trigger--readonly {
+  background-color: transparent;
+  border-color: transparent;
+  padding-left: 0;
+  padding-right: 0;
+  cursor: default;
+}
+
+.combobox__trigger--open {
+  box-shadow: 0 0 0 2px var(--border-focus);
+}
+
+.combobox__trigger-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.combobox__trigger-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--text-placeholder);
+  transition: transform 0.15s ease;
+}
+
+.combobox__trigger--open .combobox__trigger-icon {
+  transform: rotate(180deg);
+}
+
+.combobox__trigger--disabled .combobox__trigger-icon {
+  color: var(--text-disabled);
+}
+
+/* Dropdown content */
+.combobox__content {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background-color: var(--surface-default);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  animation: combobox-fade-in 0.15s ease;
+}
+
+@keyframes combobox-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Search input */
+.combobox__search {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.combobox__search-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.75;
+  color: var(--text-default);
+  background: transparent;
+}
+
+.combobox__search-input::placeholder {
+  color: var(--text-placeholder);
+}
+
+/* Item list */
+.combobox__list {
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.combobox__empty {
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--text-subtext);
+  text-align: center;
+}
+
+/* Individual item */
+.combobox__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.75;
+  color: var(--text-default);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+  outline: none;
+  transition: background-color 0.1s ease;
+}
+
+.combobox__item:hover,
+.combobox__item--highlighted {
+  background-color: var(--neutral-1);
+}
+
+.combobox__item--selected {
+  font-weight: 500;
+}
+
+.combobox__item-check {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--text-default);
+}
+
+.combobox__item-check--hidden {
+  visibility: hidden;
+}

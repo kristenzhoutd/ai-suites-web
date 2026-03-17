@@ -23,6 +23,8 @@ import AIOpportunitiesSidebar, {
 import CampaignChatPanel from './CampaignChatPanel';
 import type { Campaign } from '../../types/campaign';
 import type { LiveCampaign } from '../../types/optimize';
+import GuardrailsPromptCard from '../campaign/GuardrailsPromptCard';
+import type { PerformanceGuardrails } from '../../types/program';
 
 // ── Demo Campaigns ───────────────────────────────────────────────────────────
 
@@ -250,16 +252,17 @@ export default function CampaignManagerView() {
   const [isChatCollapsed, setIsChatCollapsed] = useState(true);
   const [opportunities, setOpportunities] = useState(mockOpportunities);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [guardrailsPromptDismissed, setGuardrailsPromptDismissed] = useState(false);
 
   // Fetch data from stores
   const { campaigns, isLoading: campaignsLoading, fetchCampaigns } = useOptimizeStore();
-  const { programs, loadPrograms, deleteProgram } = useProgramStore();
+  const { programs, loadPrograms, deleteProgram, setPerformanceGuardrailsById } = useProgramStore();
 
-  // Load data on mount
+  // Load programs on mount — campaigns use cached data, refresh via button
   useEffect(() => {
     loadPrograms();
-    fetchCampaigns();
-  }, [loadPrograms, fetchCampaigns]);
+    if (campaigns.length === 0) fetchCampaigns();
+  }, [loadPrograms]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Merge live campaigns with demo campaigns for KPI cards and views
   const allCampaigns = useMemo(() => {
@@ -307,7 +310,7 @@ export default function CampaignManagerView() {
         <CampaignChatPanel isOpen={!isChatCollapsed} onClose={() => setIsChatCollapsed(true)} />
 
         {/* Main column */}
-        <div className={`flex-1 flex flex-col overflow-y-auto bg-white border border-gray-100 relative ${!isChatCollapsed ? 'rounded-r-2xl' : 'rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)]'}`}>
+        <div className={`flex-1 flex flex-col overflow-y-auto bg-white border border-gray-100 relative ${!isChatCollapsed ? 'rounded-r-2xl' : 'rounded-2xl'}`}>
           {/* Chat toggle (shown when collapsed) */}
           {isChatCollapsed && (
             <button
@@ -320,14 +323,53 @@ export default function CampaignManagerView() {
           )}
           {/* Header */}
           <div className={`flex-shrink-0 px-8 py-6 ${isChatCollapsed ? 'ml-10' : ''}`}>
-            <h2 className="text-xl font-semibold text-gray-900">Campaigns</h2>
-            <p className="text-xs text-gray-400 mt-0.5 mb-4">
-              Monitor performance, optimize campaigns, and analyze AI-driven recommendations
-            </p>
-
-            {/* KPI Cards */}
-            <CampaignKPICards campaigns={allCampaigns} programs={programs} />
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Campaigns</h2>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Monitor performance, optimize campaigns, and analyze AI-driven recommendations
+                </p>
+              </div>
+              <button
+                onClick={() => fetchCampaigns({ forceRefresh: true })}
+                disabled={campaignsLoading}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-black/60 bg-transparent rounded-lg border border-black/15 hover:bg-black/5 hover:text-black transition-colors cursor-pointer disabled:opacity-40"
+              >
+                <svg className={`w-3.5 h-3.5 ${campaignsLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {campaignsLoading ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
+            <div className="mt-4">
+              {/* KPI Cards */}
+              <CampaignKPICards campaigns={allCampaigns} programs={programs} />
+            </div>
           </div>
+
+          {/* Performance Guardrails Prompt — shown for launched programs without targets */}
+          {!guardrailsPromptDismissed && (() => {
+            const launchedWithoutGuardrails = programs.filter(
+              (p: any) =>
+                (p.status === 'launched' || p.status === 'ready_to_launch') &&
+                !p.performanceGuardrails?.targetCpa &&
+                !p.performanceGuardrails?.targetRoas &&
+                !p.performanceGuardrails?.targetConversions
+            );
+            if (launchedWithoutGuardrails.length === 0) return null;
+            const targetProgram = launchedWithoutGuardrails[0] as any;
+            return (
+              <div className={`flex-shrink-0 px-8 ${isChatCollapsed ? 'ml-10' : ''}`}>
+                <GuardrailsPromptCard
+                  variant="command-center"
+                  onSetGuardrails={(guardrails: PerformanceGuardrails) => {
+                    setPerformanceGuardrailsById(targetProgram.id, guardrails);
+                  }}
+                  onDismiss={() => setGuardrailsPromptDismissed(true)}
+                />
+              </div>
+            );
+          })()}
 
           {/* Content Row: Main Content + AI Sidebar */}
           <div className={`flex flex-1 overflow-hidden ${isChatCollapsed ? 'ml-10' : ''}`}>

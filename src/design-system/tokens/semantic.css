@@ -10,13 +10,13 @@
   --surface-radio: var(--neutral-11); /* #020713 */
   --surface-radio-disabled: var(--neutral-5); /* #9a9ca1 */
   --surface-tab-selected: var(--neutral-1); /* #f2f3f3 */
-  --surface-tag-success: var(--success-2); /* #cfefe4 */
+  --surface-tag-success: var(--success-1); /* #e7f7f1 */
   --surface-tag-warning: var(--warning-3); /* #fee5b7 */
   --surface-tag-error: var(--error-1); /* #fdecec */
   --surface-tag-neutral: var(--neutral-1); /* #f2f3f3 */
   --surface-tag-primary: var(--primary-0); /* #f2f5fe */
-  --surface-tag-purple: #f5e7ff;
-  --surface-tag-teal: #e6f8fb;
+  --surface-tag-purple: #ffffff;
+  --surface-tag-teal: #ffffff;
   --surface-toggle-off: var(--neutral-2); /* #e6e6e7 */
   --surface-toggle-disabled: var(--neutral-5); /* #9a9ca1 */
   --surface-toggle-on: var(--neutral-11); /* #020713 */
@@ -47,26 +47,24 @@
   --text-disabled: var(--neutral-5); /* #9a9ca1 */
   --text-text-link: var(--primary-6); /* #0439e2 */
   --text-success: var(--success-6); /* #11b076 */
-  --text-tag-success: var(--success-9); /* #07462f */
+  --text-tag-success: var(--success-8); /* #0a6a47 */
   --text-tag-warning: var(--warning-9); /* #654c1e */
   --text-error: var(--error-7); /* #bf3636 */
-  --text-tag-error: var(--error-8); /* #8f2929 */
   --text-tag-text: var(--neutral-9); /* #353942 */
   --text-tag-primary: var(--primary-7); /* #032eb5 */
-  --text-tag-purple: #7a0dc8;
-  --text-tag-teal: #0592aa;
+  --text-tag-purple: var(--amethyst-8); /* #645396 */
+  --text-tag-teal: var(--morganite-7); /* #bc667c */
 
   /* ===== Icon ===== */
   --icon-default: var(--neutral-11); /* #020713 */
   --icon-secondary: var(--neutral-4); /* #b3b5b8 */
   --icon-inverse: var(--neutral-0); /* #ffffff */
   --icon-warning: var(--warning-7); /* #ca993d */
-  --icon-error: var(--error-6); /* #ef4444 */
-  --icon-tag-success: var(--success-9); /* #07462f */
+  --icon-error: var(--error-7); /* #bf3636 */
+  --icon-tag-success: var(--success-8); /* #0a6a47 */
   --icon-tag-warning: var(--warning-9); /* #654c1e */
-  --icon-tag-error: var(--error-8); /* #8f2929 */
   --icon-tag: var(--neutral-9); /* #353942 */
   --icon-tag-primary: var(--primary-7); /* #032eb5 */
   --icon-tag-purple: #7a0dc8;
-  --icon-tag-teal: #0592aa;
+  --icon-tag-teal: var(--morganite-7); /* #bc667c */
 }

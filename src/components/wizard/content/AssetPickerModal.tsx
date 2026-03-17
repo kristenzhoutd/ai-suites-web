@@ -161,7 +161,7 @@ export default function AssetPickerModal({ onSelect, onClose }: AssetPickerModal
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
       {/* Modal */}
-      <div className={`relative bg-white rounded-2xl shadow-2xl flex flex-col transition-all duration-200 ${tab === 'dam' ? 'w-[900px] max-h-[85vh]' : tab === 'ai' ? 'w-[640px] max-h-[80vh]' : 'w-[640px] max-h-[520px]'}`}>
+      <div className={`relative bg-white rounded-2xl shadow-2xl flex flex-col transition-all duration-200 ${tab === 'dam' ? 'w-[900px] h-[85vh]' : tab === 'ai' ? 'w-[640px] max-h-[80vh]' : 'w-[640px] max-h-[520px]'}`}>
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h3 className="text-sm font-semibold text-gray-900">Select Image</h3>

@@ -7,7 +7,7 @@
   border-radius: 8px;
   font-family: var(--font-primary);
   font-weight: 600;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.75;
   white-space: nowrap;
   cursor: default;
@@ -87,12 +87,12 @@
 
 .tag--error {
   background-color: var(--surface-tag-error);
-  color: var(--text-tag-error);
+  color: var(--text-error);
 }
 
 .tag--error .tag__icon,
 .tag--error .tag__close {
-  color: var(--icon-tag-error);
+  color: var(--icon-error);
 }
 
 .tag--neutral {

@@ -6,6 +6,26 @@ import {
   TooltipIconList,
 } from './Tooltip';
 
+const sampleText =
+  'Tool tip text lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor.';
+
+const TriggerButton = ({ label = 'Hover me' }: { label?: string }) => (
+  <button
+    type="button"
+    style={{
+      padding: '8px 16px',
+      borderRadius: 8,
+      border: '1px solid var(--border-default, #e6e6e7)',
+      background: 'var(--surface-default, white)',
+      fontFamily: 'inherit',
+      fontSize: 14,
+      cursor: 'pointer',
+    }}
+  >
+    {label}
+  </button>
+);
+
 const meta = {
   title: 'Components/Tooltip',
   component: Tooltip,
@@ -14,23 +34,14 @@ const meta = {
   },
   tags: ['autodocs'],
   argTypes: {
-    position: {
+    side: {
       control: 'select',
-      options: [
-        'top',
-        'top-start',
-        'top-end',
-        'bottom',
-        'bottom-start',
-        'bottom-end',
-        'left',
-        'left-start',
-        'left-end',
-        'right',
-        'right-start',
-        'right-end',
-      ],
-      description: 'Arrow position relative to the tooltip body',
+      options: ['top', 'bottom', 'left', 'right'],
+      description: 'Which side of the trigger to show the tooltip',
+    },
+    delayMs: {
+      control: 'number',
+      description: 'Delay in ms before showing',
     },
   },
 } satisfies Meta<typeof Tooltip>;
@@ -38,151 +49,101 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const sampleText =
-  'Tool tip text lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor.';
-
-// --- Content Types ---
-
-export const Text: Story = {
+export const Default: Story = {
   args: {
-    position: 'top',
-    children: <TooltipText>{sampleText}</TooltipText>,
+    content: sampleText,
+    side: 'top',
+    children: <TriggerButton />,
   },
 };
 
-export const BulletList: Story = {
-  name: 'Bullet List',
+export const Top: Story = {
   args: {
-    position: 'top',
-    children: (
-      <TooltipBulletList items={['Tooltip text', 'Tooltip text', 'Tooltip text']} />
+    content: sampleText,
+    side: 'top',
+    children: <TriggerButton label="Top" />,
+  },
+};
+
+export const Bottom: Story = {
+  args: {
+    content: sampleText,
+    side: 'bottom',
+    children: <TriggerButton label="Bottom" />,
+  },
+};
+
+export const Left: Story = {
+  args: {
+    content: sampleText,
+    side: 'left',
+    children: <TriggerButton label="Left" />,
+  },
+};
+
+export const Right: Story = {
+  args: {
+    content: sampleText,
+    side: 'right',
+    children: <TriggerButton label="Right" />,
+  },
+};
+
+export const RichText: Story = {
+  name: 'Rich: Text',
+  args: {
+    content: <TooltipText>{sampleText}</TooltipText>,
+    side: 'bottom',
+    children: <TriggerButton label="Text content" />,
+  },
+};
+
+export const RichBulletList: Story = {
+  name: 'Rich: Bullet List',
+  args: {
+    content: (
+      <TooltipBulletList
+        items={['First item description', 'Second item detail', 'Third supporting point']}
+      />
     ),
+    side: 'bottom',
+    children: <TriggerButton label="Bullet list" />,
   },
 };
 
-export const IconList: Story = {
-  name: 'Icon List (Checkmarks)',
+export const RichIconList: Story = {
+  name: 'Rich: Icon List',
   args: {
-    position: 'top',
-    children: (
-      <TooltipIconList items={['Tooltip text', 'Tooltip text', 'Tooltip text']} />
+    content: (
+      <TooltipIconList items={['Feature enabled', 'Access granted', 'Sync complete']} />
     ),
+    side: 'bottom',
+    children: <TriggerButton label="Icon list" />,
   },
 };
 
-// --- Arrow Positions ---
-
-export const ArrowTop: Story = {
-  name: 'Arrow: Top (12:00)',
+export const AllSides: Story = {
+  name: 'All Sides',
   args: {
-    position: 'top',
-    children: <TooltipText>{sampleText}</TooltipText>,
-  },
-};
-
-export const ArrowTopStart: Story = {
-  name: 'Arrow: Top Start (1:00)',
-  args: {
-    position: 'top-start',
-    children: <TooltipText>{sampleText}</TooltipText>,
-  },
-};
-
-export const ArrowTopEnd: Story = {
-  name: 'Arrow: Top End (11:00)',
-  args: {
-    position: 'top-end',
-    children: <TooltipText>{sampleText}</TooltipText>,
-  },
-};
-
-export const ArrowBottom: Story = {
-  name: 'Arrow: Bottom (6:00)',
-  args: {
-    position: 'bottom',
-    children: <TooltipText>{sampleText}</TooltipText>,
-  },
-};
-
-export const ArrowBottomStart: Story = {
-  name: 'Arrow: Bottom Start (5:00)',
-  args: {
-    position: 'bottom-start',
-    children: <TooltipText>{sampleText}</TooltipText>,
-  },
-};
-
-export const ArrowBottomEnd: Story = {
-  name: 'Arrow: Bottom End (7:00)',
-  args: {
-    position: 'bottom-end',
-    children: <TooltipText>{sampleText}</TooltipText>,
-  },
-};
-
-export const ArrowLeft: Story = {
-  name: 'Arrow: Left (9:00)',
-  args: {
-    position: 'left',
-    children: <TooltipText>{sampleText}</TooltipText>,
-  },
-};
-
-export const ArrowRight: Story = {
-  name: 'Arrow: Right (3:00)',
-  args: {
-    position: 'right',
-    children: <TooltipText>{sampleText}</TooltipText>,
-  },
-};
-
-// --- All Positions Gallery ---
-
-export const AllPositions: Story = {
-  name: 'All Arrow Positions',
-  args: {
-    position: 'top',
-    children: <TooltipText>{sampleText}</TooltipText>,
+    content: sampleText,
+    children: <TriggerButton />,
   },
   render: () => (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 40, padding: 40 }}>
-      {(['top-end', 'top', 'top-start',
-        'left', 'right', 'left-end',
-        'bottom-end', 'bottom', 'bottom-start',
-      ] as const).map((pos) => (
-        <div key={pos} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 11, color: '#808389', fontFamily: 'monospace' }}>{pos}</span>
-          <Tooltip position={pos}>
-            <TooltipText>{sampleText}</TooltipText>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: 80,
+        padding: 120,
+      }}
+    >
+      {(['top', 'bottom', 'left', 'right'] as const).map((side) => (
+        <div key={side} style={{ display: 'flex', justifyContent: 'center' }}>
+          <Tooltip content={sampleText} side={side}>
+            <TriggerButton label={side} />
           </Tooltip>
         </div>
       ))}
     </div>
   ),
-};
-
-// --- Rich Content ---
-
-export const BulletListBottomArrow: Story = {
-  name: 'Bullet List + Bottom Arrow',
-  args: {
-    position: 'bottom',
-    children: (
-      <TooltipBulletList
-        items={['First item description', 'Second item detail', 'Third supporting point']}
-      />
-    ),
-  },
-};
-
-export const IconListRightArrow: Story = {
-  name: 'Icon List + Right Arrow',
-  args: {
-    position: 'right',
-    children: (
-      <TooltipIconList
-        items={['Feature enabled', 'Access granted', 'Sync complete']}
-      />
-    ),
-  },
 };

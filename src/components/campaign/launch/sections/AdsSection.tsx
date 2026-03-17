@@ -2,6 +2,7 @@
  * Ads section — ad name, ad set assignment, creative assignment.
  */
 
+import { Megaphone } from 'lucide-react';
 import type { CampaignLaunchPageState } from '../../../../hooks/useCampaignLaunchPageState';
 import { inputClass, selectClass, selectStyle, labelClass } from '../../../../pages/campaignLaunch/constants';
 
@@ -20,7 +21,7 @@ export default function AdsSection({ state }: Props) {
         </h2>
         <button
           onClick={addAd}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#1957DB] bg-[#EFF6FF] rounded-lg hover:bg-[#DBEAFE] transition-colors border-none cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-black/60 bg-transparent rounded-lg border border-black/15 hover:bg-black/5 hover:text-black transition-colors cursor-pointer"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -29,10 +30,30 @@ export default function AdsSection({ state }: Props) {
         </button>
       </div>
       <div className="flex flex-col gap-3">
-        {config.ads.map((ad) => (
+        {config.ads.length === 0 && (
+          <div className="flex flex-col items-center justify-center text-center min-h-[60vh]">
+            <div className="w-16 h-16 rounded-full bg-black/[0.06] flex items-center justify-center mb-3">
+              <Megaphone className="w-7 h-7 text-black/25" strokeWidth={1.5} />
+            </div>
+            <p className="text-sm text-black/40 mb-3">No ads yet</p>
+            <button
+              onClick={addAd}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-black/60 bg-transparent rounded-lg border border-black/15 hover:bg-black/5 hover:text-black transition-colors cursor-pointer"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Ad
+            </button>
+          </div>
+        )}
+        {config.ads.map((ad, index) => (
           <div key={ad.localId} className="bg-white rounded-xl shadow-sm px-6 py-5">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-medium text-gray-400 uppercase">{ad.name}</span>
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-md bg-black/5 flex items-center justify-center text-[10px] font-semibold text-black/50 flex-shrink-0">{index + 1}</span>
+                <span className="text-xs font-medium text-gray-400 uppercase">{ad.name}</span>
+              </div>
               {config.ads.length > 1 && (
                 <button
                   onClick={() => removeAd(ad.localId)}

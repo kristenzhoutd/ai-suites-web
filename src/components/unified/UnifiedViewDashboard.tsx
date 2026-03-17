@@ -2623,7 +2623,7 @@ export default function UnifiedViewDashboard() {
   }, [location.state, campaigns]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRefresh = () => {
-    fetchCampaigns().then(() => {
+    fetchCampaigns({ forceRefresh: true }).then(() => {
       setLastRefreshed(new Date());
     });
   };
@@ -2853,7 +2853,7 @@ export default function UnifiedViewDashboard() {
       <UnifiedChatPanel isOpen={isChatOpen} onClose={() => { setIsChatOpen(false); setTriggerOnboarding(false); setChartContext(null); }} startOnboarding={triggerOnboarding} pinnedKpis={pinnedKpis} setPinnedKpis={setPinnedKpis} pinnedWidgets={pinnedWidgets} setPinnedWidgets={setPinnedWidgets} chartContext={chartContext} onClearChartContext={() => setChartContext(null)} />
 
       {/* Main column — white rounded canvas */}
-      <div className={`flex-1 flex flex-col overflow-y-auto bg-white border border-gray-100 relative ${isChatOpen ? 'rounded-r-2xl' : 'rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)]'}`}>
+      <div className={`flex-1 flex flex-col overflow-y-auto bg-white border border-gray-100 relative ${isChatOpen ? 'rounded-r-2xl' : 'rounded-2xl'}`}>
         {/* Chat toggle icon in top left corner (only show when chat is closed) */}
         {!isChatOpen && (
           <button

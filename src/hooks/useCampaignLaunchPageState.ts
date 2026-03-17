@@ -183,7 +183,7 @@ export function useCampaignLaunchPageState() {
 
     const blueprintJson = JSON.stringify(blueprint, null, 2);
     const briefJson = JSON.stringify(briefData, null, 2);
-    const prompt = `[launch-config-gen] Generate a complete Meta ad configuration from this approved blueprint.\n\n<approved-blueprint>\n${blueprintJson}\n</approved-blueprint>\n\n<campaign-brief>\n${briefJson}\n</campaign-brief>`;
+    const metaPrompt = `[launch-config-gen] Generate a complete Meta ad configuration from this approved blueprint.\n\n<approved-blueprint>\n${blueprintJson}\n</approved-blueprint>\n\n<campaign-brief>\n${briefJson}\n</campaign-brief>`;
 
     const runId = `run-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const trace = useTraceStore.getState();
@@ -191,7 +191,16 @@ export function useCampaignLaunchPageState() {
     trace.addEvent(runId, 'intent', 'Auto-trigger: generate launch config from blueprint');
     trace.addEvent(runId, 'skill_call', 'Sending to Claude Agent SDK');
 
-    sendMessage(prompt, runId).catch((err) => {
+    sendMessage(metaPrompt, runId).then(() => {
+      // Also generate Google Ads config after Meta completes
+      const googlePrompt = `[google-launch-config-gen] Generate a complete Google Ads configuration from this approved blueprint.\n\n<approved-blueprint>\n${blueprintJson}\n</approved-blueprint>\n\n<campaign-brief>\n${briefJson}\n</campaign-brief>`;
+      const googleRunId = `run-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      trace.startRun(googleRunId, `user-${Date.now()}`);
+      trace.addEvent(googleRunId, 'intent', 'Auto-trigger: generate Google launch config from blueprint');
+      sendMessage(googlePrompt, googleRunId).catch((err) => {
+        console.warn('[CampaignLaunch] Google config auto-generation failed:', err);
+      });
+    }).catch((err) => {
       console.error('[CampaignLaunch] Auto-generation failed:', err);
       useCampaignLaunchStore.getState().setGeneratingConfig(false);
     });

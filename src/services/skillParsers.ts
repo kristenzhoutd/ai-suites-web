@@ -112,6 +112,22 @@ export interface LaunchConfigUpdateOutput {
 }
 export const parseLaunchConfigUpdate = createCodeFenceParser<LaunchConfigUpdateOutput>('launch-config-update-json');
 
+/** Google Launch Config: Full AI-generated Google Ads campaign hierarchy */
+export interface GoogleLaunchConfigOutput {
+  campaign: { name: string; campaignType: string; dailyBudgetMicros: number; biddingStrategy: string; targetCpaMicros?: number; targetRoas?: number; status: string };
+  adGroups: Array<{ localId: string; name: string; status: string; cpcBidMicros: number; keywords: Array<{ text: string; matchType: string }> }>;
+  ads: Array<{ localId: string; adGroupLocalId: string; name: string; type: string; responsiveSearchAd?: { headlines: string[]; descriptions: string[]; finalUrls: string[]; path1?: string; path2?: string }; status: string }>;
+}
+export const parseGoogleLaunchConfig = createCodeFenceParser<GoogleLaunchConfigOutput>('google-launch-config-json');
+
+/** Google Launch Config Update: Partial updates from chat-driven refinement */
+export interface GoogleLaunchConfigUpdateOutput {
+  campaign?: Partial<GoogleLaunchConfigOutput['campaign']>;
+  adGroups?: Array<{ operation?: 'update' | 'add' | 'remove'; localId?: string; [key: string]: unknown }>;
+  ads?: Array<{ operation?: 'update' | 'add' | 'remove'; localId?: string; [key: string]: unknown }>;
+}
+export const parseGoogleLaunchConfigUpdate = createCodeFenceParser<GoogleLaunchConfigUpdateOutput>('google-launch-config-update-json');
+
 // ============ Category B: Audience & Targeting ============
 
 /** Skill 7: Audience segment recommendations */
@@ -582,6 +598,8 @@ export const SKILL_PARSERS = [
   { name: 'blueprints', parse: parseBlueprints },
   { name: 'blueprint-update', parse: parseBlueprintUpdate },
   { name: 'adset-config', parse: parseAdSetConfig },
+  { name: 'google-launch-config', parse: parseGoogleLaunchConfig },
+  { name: 'google-launch-config-update', parse: parseGoogleLaunchConfigUpdate },
   { name: 'launch-config', parse: parseLaunchConfig },
   { name: 'launch-config-update', parse: parseLaunchConfigUpdate },
   { name: 'audience-recommendation', parse: parseAudienceRecommendation },

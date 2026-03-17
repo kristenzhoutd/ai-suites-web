@@ -1,5 +1,18 @@
+import { useEffect, useRef } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { TextField } from './TextField';
+import { TextField, type TextFieldProps } from './TextField';
+
+const AutoFocusTextField = (props: TextFieldProps) => {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    ref.current?.querySelector('input')?.focus();
+  }, []);
+  return (
+    <div ref={ref}>
+      <TextField {...props} />
+    </div>
+  );
+};
 
 const meta = {
   title: 'Components/Text Field',
@@ -7,6 +20,13 @@ const meta = {
   parameters: {
     layout: 'centered',
   },
+  decorators: [
+    (Story) => (
+      <div style={{ width: 280 }}>
+        <Story />
+      </div>
+    ),
+  ],
   tags: ['autodocs'],
   argTypes: {
     label: {
@@ -16,6 +36,10 @@ const meta = {
     helpText: {
       control: 'text',
       description: 'Help text below the input',
+    },
+    errorMessage: {
+      control: 'text',
+      description: 'Error message shown when status is error',
     },
     status: {
       control: 'select',
@@ -63,8 +87,8 @@ export const Default: Story = {
 export const Active: Story = {
   args: {
     defaultValue: 'Enter value',
-    autoFocus: true,
   },
+  render: (args) => <AutoFocusTextField {...args} />,
 };
 
 export const Disabled: Story = {
@@ -85,6 +109,7 @@ export const Error: Story = {
   args: {
     defaultValue: 'Enter value',
     status: 'error',
+    errorMessage: 'This field is required.',
   },
 };
 
@@ -92,5 +117,32 @@ export const Warning: Story = {
   args: {
     defaultValue: 'Enter value',
     status: 'warning',
+    helpText: 'This value may need review.',
+  },
+};
+
+export const WithLabel: Story = {
+  args: {
+    label: 'Full name',
+    placeholder: 'Enter your name',
+    required: true,
+  },
+};
+
+export const WithHelpText: Story = {
+  args: {
+    label: 'Email',
+    placeholder: 'you@example.com',
+    helpText: 'We will never share your email.',
+  },
+};
+
+export const WithLabelAndError: Story = {
+  args: {
+    label: 'Username',
+    defaultValue: 'admin',
+    status: 'error',
+    errorMessage: 'This username is already taken.',
+    required: true,
   },
 };

@@ -1,26 +1,27 @@
-import type { ReactNode } from 'react';
+import {
+  useState,
+  useRef,
+  useCallback,
+  useLayoutEffect,
+  type ReactNode,
+  type ReactElement,
+  type CSSProperties,
+} from 'react';
+import { createPortal } from 'react-dom';
 import './Tooltip.css';
 
-export type TooltipPosition =
-  | 'top'
-  | 'top-start'
-  | 'top-end'
-  | 'bottom'
-  | 'bottom-start'
-  | 'bottom-end'
-  | 'left'
-  | 'left-start'
-  | 'left-end'
-  | 'right'
-  | 'right-start'
-  | 'right-end';
+export type TooltipPosition = 'top' | 'bottom' | 'left' | 'right';
 
 export interface TooltipProps {
-  /** Content inside the tooltip */
-  children: ReactNode;
-  /** Arrow position relative to the tooltip body */
-  position?: TooltipPosition;
-  /** Additional CSS class */
+  /** The trigger element */
+  children: ReactElement;
+  /** Tooltip content — string or rich content (TooltipText, TooltipBulletList, TooltipIconList) */
+  content: ReactNode;
+  /** Which side of the trigger to show the tooltip */
+  side?: TooltipPosition;
+  /** Delay in ms before showing (default 200) */
+  delayMs?: number;
+  /** Additional CSS class for the tooltip popup */
   className?: string;
 }
 
@@ -36,37 +37,24 @@ export interface TooltipIconListProps {
   items: string[];
 }
 
-/**
- * Plain text content for a Tooltip.
- */
 export const TooltipText = ({ children }: TooltipTextProps) => (
-  <div className="tooltip-content">
-    <p className="tooltip-content__text">{children}</p>
-  </div>
+  <p className="tooltip__text">{children}</p>
 );
 
-/**
- * Bulleted list content for a Tooltip.
- */
 export const TooltipBulletList = ({ items }: TooltipBulletListProps) => (
-  <div className="tooltip-content">
-    <ul className="tooltip-content__bullets">
-      {items.map((item, i) => (
-        <li key={i}>{item}</li>
-      ))}
-    </ul>
-  </div>
+  <ul className="tooltip__bullets">
+    {items.map((item, i) => (
+      <li key={i}>{item}</li>
+    ))}
+  </ul>
 );
 
-/**
- * Icon list (checkmarks) content for a Tooltip.
- */
 export const TooltipIconList = ({ items }: TooltipIconListProps) => (
-  <div className="tooltip-content tooltip-content--icon-list">
+  <div className="tooltip__icon-list">
     {items.map((item, i) => (
-      <div key={i} className="tooltip-content__icon-row">
+      <div key={i} className="tooltip__icon-row">
         <svg
-          className="tooltip-content__check-icon"
+          className="tooltip__check-icon"
           width="18"
           height="18"
           viewBox="0 0 18 18"
@@ -80,45 +68,125 @@ export const TooltipIconList = ({ items }: TooltipIconListProps) => (
             strokeLinejoin="round"
           />
         </svg>
-        <span className="tooltip-content__text">{item}</span>
+        <span className="tooltip__text">{item}</span>
       </div>
     ))}
   </div>
 );
 
-function getArrowEdge(position: TooltipPosition): 'top' | 'bottom' | 'left' | 'right' {
-  if (position.startsWith('top')) return 'top';
-  if (position.startsWith('bottom')) return 'bottom';
-  if (position.startsWith('left')) return 'left';
-  return 'right';
+const GAP = 8;
+
+function computePosition(
+  triggerRect: DOMRect,
+  popupRect: DOMRect,
+  side: TooltipPosition,
+): CSSProperties {
+  const { top, left, width, height } = triggerRect;
+  const scrollX = window.scrollX;
+  const scrollY = window.scrollY;
+
+  switch (side) {
+    case 'top':
+      return {
+        top: top + scrollY - popupRect.height - GAP,
+        left: left + scrollX + width / 2 - popupRect.width / 2,
+      };
+    case 'bottom':
+      return {
+        top: top + scrollY + height + GAP,
+        left: left + scrollX + width / 2 - popupRect.width / 2,
+      };
+    case 'left':
+      return {
+        top: top + scrollY + height / 2 - popupRect.height / 2,
+        left: left + scrollX - popupRect.width - GAP,
+      };
+    case 'right':
+      return {
+        top: top + scrollY + height / 2 - popupRect.height / 2,
+        left: left + scrollX + width + GAP,
+      };
+  }
 }
 
-/**
- * Tooltip component matching the Diamond Design System spec.
- *
- * Supports 12 arrow positions and 3 content types
- * (use TooltipText, TooltipBulletList, or TooltipIconList as children).
- */
-export const Tooltip = ({
-  children,
-  position = 'top',
-  className = '',
-}: TooltipProps) => {
-  const edge = getArrowEdge(position);
+const TooltipPopup = ({
+  triggerRef,
+  side,
+  className,
+  content,
+}: {
+  triggerRef: React.RefObject<HTMLDivElement | null>;
+  side: TooltipPosition;
+  className: string;
+  content: ReactNode;
+}) => {
+  const popupRef = useRef<HTMLDivElement>(null);
+  const [style, setStyle] = useState<CSSProperties>({ visibility: 'hidden' });
 
-  const classes = [
-    'tooltip',
-    `tooltip--arrow-${edge}`,
-    `tooltip--${position}`,
-    className,
-  ]
+  useLayoutEffect(() => {
+    const trigger = triggerRef.current;
+    const popup = popupRef.current;
+    if (!trigger || !popup) return;
+
+    const triggerRect = trigger.getBoundingClientRect();
+    const popupRect = popup.getBoundingClientRect();
+    setStyle(computePosition(triggerRect, popupRect, side));
+  }, [triggerRef, side]);
+
+  const popupClasses = ['tooltip__popup', `tooltip__popup--${side}`, className]
     .filter(Boolean)
     .join(' ');
 
-  return (
-    <div className={classes}>
+  return createPortal(
+    <div ref={popupRef} className={popupClasses} role="tooltip" style={style}>
       <div className="tooltip__arrow" />
-      <div className="tooltip__body">{children}</div>
+      <div className="tooltip__body">
+        {typeof content === 'string' ? <TooltipText>{content}</TooltipText> : content}
+      </div>
+    </div>,
+    document.body,
+  );
+};
+
+export const Tooltip = ({
+  children,
+  content,
+  side = 'top',
+  delayMs = 200,
+  className = '',
+}: TooltipProps) => {
+  const [visible, setVisible] = useState(false);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const show = useCallback(() => {
+    clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => setVisible(true), delayMs);
+  }, [delayMs]);
+
+  const hide = useCallback(() => {
+    clearTimeout(timeoutRef.current);
+    setVisible(false);
+  }, []);
+
+  return (
+    <div
+      ref={triggerRef}
+      className="tooltip"
+      onMouseEnter={show}
+      onMouseLeave={hide}
+      onFocus={show}
+      onBlur={hide}
+    >
+      {children}
+      {visible && (
+        <TooltipPopup
+          triggerRef={triggerRef}
+          side={side}
+          className={className}
+          content={content}
+        />
+      )}
     </div>
   );
 };

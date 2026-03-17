@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useCampaignConfigStore } from '../../stores/campaignConfigStore';
 import { useChatStore } from '../../stores/chatStore';
-import { TextField, TextArea, Select } from '@/design-system';
+import { TextField, TextArea } from '@/design-system';
 import SelectableElement from '../chat/SelectableElement';
 
 const CTX = { domain: 'campaign-setup' as const };
@@ -57,17 +57,20 @@ export default function CampaignSetupStep() {
               />
             </SelectableElement>
             <SelectableElement refId="setup.goalType" refType="select-field" path={['Campaign Setup', 'Goal Type']} label="Goal Type" currentValue={setup.goalType} context={CTX}>
-              <Select
-                label="Goal Type"
-                value={setup.goalType}
-                onChange={(e) => updateSetup({ goalType: e.target.value as typeof setup.goalType })}
-              >
-                <option value="conversion">Conversion</option>
-                <option value="engagement">Engagement</option>
-                <option value="retention">Retention</option>
-                <option value="revenue">Revenue</option>
-                <option value="awareness">Awareness</option>
-              </Select>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Goal Type</label>
+                <select
+                  value={setup.goalType}
+                  onChange={(e) => updateSetup({ goalType: e.target.value as typeof setup.goalType })}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-300"
+                >
+                  <option value="conversion">Conversion</option>
+                  <option value="engagement">Engagement</option>
+                  <option value="retention">Retention</option>
+                  <option value="revenue">Revenue</option>
+                  <option value="awareness">Awareness</option>
+                </select>
+              </div>
             </SelectableElement>
             <SelectableElement refId="setup.primaryKpi" refType="text-field" path={['Campaign Setup', 'Primary KPI']} label="Primary KPI" currentValue={setup.primaryKpi} context={CTX}>
               <TextField

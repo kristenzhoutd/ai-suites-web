@@ -44,7 +44,7 @@ interface OptimizeState {
   selectCampaign: (id: string | null) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
-  fetchCampaigns: () => Promise<void>;
+  fetchCampaigns: (options?: { forceRefresh?: boolean }) => Promise<void>;
 }
 
 export const useOptimizeStore = create<OptimizeState>((set, get) => ({
@@ -106,18 +106,18 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => ({
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error }),
 
-  fetchCampaigns: async () => {
+  fetchCampaigns: async (options?: { forceRefresh?: boolean }) => {
     // Prevent concurrent fetches
     if (get().isLoading) return;
-    // Skip if we fetched recently (within 5 minutes) to avoid Meta rate limits.
-    // This applies even after errors so we don't hammer a rate-limited endpoint.
+    const forceRefresh = options?.forceRefresh ?? false;
+    // Skip if we fetched recently (within 5 minutes) unless force refresh
     const lastFetch = get().lastFetchedAt;
-    if (lastFetch && Date.now() - lastFetch < 300_000) return;
+    if (!forceRefresh && lastFetch && Date.now() - lastFetch < 300_000) return;
 
     set({ isLoading: true, error: null });
     try {
-      console.log('[OptimizeStore] Fetching campaigns...');
-      const result = await window.aiSuites.campaigns.list();
+      console.log(`[OptimizeStore] Fetching campaigns... (forceRefresh: ${forceRefresh})`);
+      const result = await window.aiSuites.campaigns.list({ forceRefresh });
       console.log('[OptimizeStore] API result:', result?.success, 'count:', result?.data?.length, 'error:', result?.error);
 
       if (result.success && result.data && result.data.length > 0) {
@@ -130,7 +130,9 @@ export const useOptimizeStore = create<OptimizeState>((set, get) => ({
           ? campaigns.reduce((sum, c) => sum + (c.metrics?.roas || 0) * (c.spent || 0), 0) / totalSpent
           : 0;
 
-        console.log('[OptimizeStore] Loaded', campaigns.length, 'real campaigns from Meta');
+        const metaCount = campaigns.filter((c) => c.platform === 'meta').length;
+        const googleCount = campaigns.filter((c) => c.platform === 'google').length;
+        console.log(`[OptimizeStore] Loaded ${campaigns.length} campaigns (Meta: ${metaCount}, Google: ${googleCount})`);
         set({
           campaigns,
           summary: { totalBudget, totalSpent, overallRoas, totalConversions, activeCampaigns },

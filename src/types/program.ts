@@ -28,6 +28,15 @@ export interface ProgramChannelConfig {
   isConfigured: boolean;
 }
 
+export interface PerformanceGuardrails {
+  targetCpa?: number;
+  targetRoas?: number;
+  targetConversions?: number;
+  budgetCap?: number;
+  setAt?: string;
+  source?: 'manual' | 'ai-suggested';
+}
+
 export interface PaidMediaProgram {
   id: string;
   name: string;
@@ -50,6 +59,9 @@ export interface PaidMediaProgram {
 
   // Channel configs (Step 3)
   channels: ProgramChannelConfig[];
+
+  // Performance guardrails (optional)
+  performanceGuardrails?: PerformanceGuardrails;
 
   // Chat
   chatSessionId?: string;

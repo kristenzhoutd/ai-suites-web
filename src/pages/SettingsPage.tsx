@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Button, TextField, Select } from '@/design-system';
+import { Button, TextField } from '@/design-system';
 
 const DEFAULT_LLM_PROXY_URL = 'https://llm-proxy.us01.treasuredata.com';
 
@@ -82,8 +82,7 @@ export default function SettingsPage() {
   const [isSavingTdx, setIsSavingTdx] = useState(false);
   const [tdxSaveMessage, setTdxSaveMessage] = useState<string | null>(null);
 
-  // Auto-save debounce refs
-  const aiAutoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Auto-save debounce ref for TDX API key
   const tdxAutoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load settings on mount
@@ -121,10 +120,9 @@ export default function SettingsPage() {
     loadSettings();
   }, []);
 
-  // Cleanup auto-save timers
+  // Cleanup auto-save timer
   useEffect(() => {
     return () => {
-      if (aiAutoSaveTimer.current) clearTimeout(aiAutoSaveTimer.current);
       if (tdxAutoSaveTimer.current) clearTimeout(tdxAutoSaveTimer.current);
     };
   }, []);
@@ -172,21 +170,6 @@ export default function SettingsPage() {
     } else {
       setAgents([]);
       setSelectedAgent('');
-    }
-  };
-
-  // Auto-save when AI API key is entered
-  const handleAiApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setApiKey(value);
-    setAiKeyStatus('idle');
-
-    if (aiAutoSaveTimer.current) clearTimeout(aiAutoSaveTimer.current);
-
-    if (value.trim()) {
-      aiAutoSaveTimer.current = setTimeout(() => {
-        handleSaveAi(true);
-      }, 800);
     }
   };
 
@@ -286,7 +269,7 @@ export default function SettingsPage() {
   };
 
   // --- AI Section Save ---
-  const handleSaveAi = useCallback(async (autoSave = false) => {
+  const handleSaveAi = async () => {
     setIsSavingAi(true);
     setAiSaveMessage(null);
     try {
@@ -301,15 +284,15 @@ export default function SettingsPage() {
         setAiKeyStatus('success');
         setApiKey('');
       }
-      if (!autoSave) setAiSaveMessage('AI configuration saved.');
+      setAiSaveMessage('AI configuration saved.');
     } catch (error) {
       console.error('Failed to save AI config:', error);
       setAiSaveMessage('Failed to save AI configuration.');
     } finally {
       setIsSavingAi(false);
-      if (!autoSave) setTimeout(() => setAiSaveMessage(null), 3000);
+      setTimeout(() => setAiSaveMessage(null), 3000);
     }
-  }, [apiKey, llmProxyUrl, model, savedAgentName, selectedProject, selectedAgent]);
+  };
 
   return (
     <div className="h-full overflow-y-auto">
@@ -352,10 +335,11 @@ export default function SettingsPage() {
                   const val = e.target.value;
                   // If user starts typing over the mask, clear it first
                   if (!apiKey && hasStoredApiKey) {
-                    handleAiApiKeyChange({ target: { value: val.replace(/\*/g, '') } } as React.ChangeEvent<HTMLInputElement>);
+                    setApiKey(val.replace(/\*/g, ''));
                   } else {
-                    handleAiApiKeyChange(e);
+                    setApiKey(val);
                   }
+                  setAiKeyStatus('idle');
                 }}
                 onFocus={() => { if (!apiKey && hasStoredApiKey) setApiKey(''); }}
                 placeholder="1/xxxxxxxxxxxxxxxx"
@@ -364,17 +348,20 @@ export default function SettingsPage() {
             </div>
 
             {/* Model Selection */}
-            <Select
-              label="Model"
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-            >
-              {MODEL_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </Select>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Model</label>
+              <select
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-300"
+              >
+                {MODEL_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             {/* Image Generation Agent */}
             <div>
@@ -499,18 +486,21 @@ export default function SettingsPage() {
 
           <div className="space-y-4">
             {/* API Endpoint / Region */}
-            <Select
-              label="API Endpoint"
-              helpText="Select the region where your Treasure Data account is hosted."
-              value={tdxEndpoint}
-              onChange={(e) => setTdxEndpoint(e.target.value)}
-            >
-              {TDX_REGIONS.map((r) => (
-                <option key={r.value} value={r.value}>
-                  {r.label}
-                </option>
-              ))}
-            </Select>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">API Endpoint</label>
+              <select
+                value={tdxEndpoint}
+                onChange={(e) => setTdxEndpoint(e.target.value)}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-300"
+              >
+                {TDX_REGIONS.map((r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Select the region where your Treasure Data account is hosted.</p>
+            </div>
 
             {/* TDX API Key with inline Test Connection */}
             <div>
@@ -553,7 +543,6 @@ export default function SettingsPage() {
 
           </div>
         </div>
-
 
       </div>
     </div>

@@ -10,8 +10,6 @@ export type { TextFieldProps } from './TextField';
 export { TextArea } from './TextArea';
 export type { TextAreaProps } from './TextArea';
 
-export { Select } from './Select';
-export type { SelectProps } from './Select';
 
 export { Checkbox } from './Checkbox';
 export type { CheckboxProps } from './Checkbox';

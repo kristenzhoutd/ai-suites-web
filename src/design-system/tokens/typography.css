@@ -6,6 +6,7 @@
   /* Font Weights */
   --font-weight-light: 300;
   --font-weight-regular: 400;
+  --font-weight-medium: 500;
   --font-weight-semibold: 600;
 
   /* Font Sizes */
@@ -14,6 +15,7 @@
   --font-size-h3: 16px;
   --font-size-body: 14px;
   --font-size-subtext: 12px;
+  --font-size-tag: 10px;
 
   /* Line Heights */
   --line-height-default: 1.75;

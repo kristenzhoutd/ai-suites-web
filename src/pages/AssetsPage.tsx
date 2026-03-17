@@ -318,7 +318,7 @@ export default function AssetsPage() {
 
   // Check AEM connection status on mount
   useEffect(() => {
-    window.aiSuites.aem.status().then((res) => {
+    window.aiSuites?.aem?.status().then((res) => {
       if (res.success && res.data?.connected) {
         setAemConnected(true);
       }

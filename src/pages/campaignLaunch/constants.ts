@@ -48,7 +48,7 @@ export const LAUNCH_SKELETON_SECTIONS = [
 export type LaunchSectionId = 'campaign' | 'adSets' | 'creatives' | 'ads';
 
 export const LAUNCH_SECTIONS: { id: LaunchSectionId; label: string }[] = [
-  { id: 'campaign', label: 'Campaign' },
+  { id: 'campaign', label: 'Campaign Details' },
   { id: 'adSets', label: 'Ad Sets' },
   { id: 'creatives', label: 'Creatives' },
   { id: 'ads', label: 'Ads' },
@@ -67,3 +67,97 @@ export const selectClass = `${inputClass} cursor-pointer appearance-none`;
 export const labelClass = 'block text-[13px] font-medium text-gray-500 mb-1.5';
 
 export type PlatformTab = 'meta' | 'google' | 'tiktok' | 'snapchat' | 'pinterest';
+
+// ── Google Ads constants ────────────────────────────────────────────────────
+
+export const GOOGLE_CAMPAIGN_TYPES: { value: string; label: string }[] = [
+  { value: 'SEARCH', label: 'Search' },
+  { value: 'DISPLAY', label: 'Display' },
+  { value: 'VIDEO', label: 'Video (YouTube)' },
+  { value: 'PERFORMANCE_MAX', label: 'Performance Max' },
+];
+
+export const GOOGLE_BIDDING_STRATEGIES: { value: string; label: string }[] = [
+  { value: 'MAXIMIZE_CLICKS', label: 'Maximize Clicks' },
+  { value: 'MAXIMIZE_CONVERSIONS', label: 'Maximize Conversions' },
+  { value: 'TARGET_CPA', label: 'Target CPA' },
+  { value: 'TARGET_ROAS', label: 'Target ROAS' },
+  { value: 'MANUAL_CPC', label: 'Manual CPC' },
+];
+
+export const GOOGLE_KEYWORD_MATCH_TYPES: { value: string; label: string }[] = [
+  { value: 'BROAD', label: 'Broad' },
+  { value: 'PHRASE', label: 'Phrase' },
+  { value: 'EXACT', label: 'Exact' },
+];
+
+export type GoogleLaunchSectionId = 'campaign' | 'adGroups' | 'assets' | 'ads';
+
+export const GOOGLE_LAUNCH_SECTIONS: { id: GoogleLaunchSectionId; label: string }[] = [
+  { id: 'campaign', label: 'Campaign Details' },
+  { id: 'adGroups', label: 'Ad Groups' },
+  { id: 'assets', label: 'Assets' },
+  { id: 'ads', label: 'Ads' },
+];
+
+// ── Google launch config types ──────────────────────────────────────────────
+
+export interface GoogleKeyword {
+  text: string;
+  matchType: 'BROAD' | 'PHRASE' | 'EXACT';
+}
+
+export interface GoogleAdGroup {
+  localId: string;
+  name: string;
+  status: string;
+  cpcBidMicros: number;
+  keywords: GoogleKeyword[];
+}
+
+export interface GoogleResponsiveSearchAd {
+  headlines: string[];
+  descriptions: string[];
+  finalUrls: string[];
+  path1?: string;
+  path2?: string;
+}
+
+export interface GoogleAd {
+  localId: string;
+  adGroupLocalId: string;
+  name: string;
+  type: string;
+  responsiveSearchAd?: GoogleResponsiveSearchAd;
+  status: string;
+}
+
+export interface GoogleAsset {
+  localId: string;
+  name: string;
+  type: 'image' | 'logo';
+  file?: {
+    fileName: string;
+    filePath: string;
+    fileSize: number;
+    mimeType: string;
+    previewUrl: string;
+  };
+  headline?: string;
+  description?: string;
+}
+
+export interface GoogleLaunchConfig {
+  campaign: {
+    name: string;
+    campaignType: string;
+    dailyBudgetMicros: number;
+    biddingStrategy: string;
+    targetCpaMicros?: number;
+    targetRoas?: number;
+    status: string;
+  };
+  adGroups: GoogleAdGroup[];
+  assets: GoogleAsset[];
+  ads: GoogleAd[];
+}
