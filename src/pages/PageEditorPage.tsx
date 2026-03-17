@@ -232,10 +232,14 @@ export default function PageEditorPage() {
           parentClasses: el.parentElement ? (el.parentElement.className || '') : '',
           parentId: el.parentElement ? (el.parentElement.id || '') : ''
         };
+        try {
+          window.parent.postMessage({ type: 'picker', payload: '__SPOT_SELECTED__' + JSON.stringify(data) }, '*');
+        } catch(e) {}
         console.log('__SPOT_SELECTED__' + JSON.stringify(data));
       }
       function onKeyDown(e) {
         if (e.key === 'Escape' && enabled) {
+          try { window.parent.postMessage({ type: 'picker', payload: '__PICKER_ESCAPE__' }, '*'); } catch(e2) {}
           console.log('__PICKER_ESCAPE__');
         }
       }
@@ -406,8 +410,14 @@ export default function PageEditorPage() {
       }
 
       setWebviewError(null);
-      setIsWebviewLoading(true);
       setShowWebsitePreview(true);
+      if (isElectron()) {
+        setIsWebviewLoading(true);
+      } else {
+        // Web mode: no loading overlay, picker is pre-injected server-side
+        setIsWebviewLoading(false);
+        setPickerInjected(true);
+      }
 
       // If creating a new page, check if a saved page already exists for this URL
       if (isNew) {
@@ -435,26 +445,53 @@ export default function PageEditorPage() {
     }
   };
 
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+
   const injectPickerScript = () => {
-    const webview = webviewRef.current as any;
-    if (!webview) return;
-    const script = getPickerScript(spotsRef.current);
-    webview.executeJavaScript(script).then(() => {
+    if (isElectron()) {
+      const webview = webviewRef.current as any;
+      if (!webview) return;
+      const script = getPickerScript(spotsRef.current);
+      webview.executeJavaScript(script).then(() => {
+        setPickerInjected(true);
+      }).catch(() => {});
+    } else {
+      // Web mode: picker is pre-injected server-side, just mark as ready
       setPickerInjected(true);
-    }).catch(() => {
-      // Injection may fail if page is not ready; that's okay
-    });
+    }
   };
 
   useEffect(() => {
-    const webview = webviewRef.current;
-    if (!webview) return;
+    if (!isElectron()) {
+      // Web mode: listen for postMessage from iframe picker
+      const onMessage = (e: MessageEvent) => {
+        if (e.data?.type === 'picker') console.log('[Picker] Received message from iframe:', e.data);
+        if (e.data?.type !== 'picker') return;
+        const msg: string = e.data.payload;
+        if (msg.startsWith('__SPOT_SELECTED__')) {
+          try {
+            const data = JSON.parse(msg.slice('__SPOT_SELECTED__'.length));
+            if (spotsRef.current.some(s => s.selector === data.selector)) return;
+            const classified = classifySpotType(data);
+            const newSpot: Spot = {
+              id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
+              name: classified.name || data.name || data.tagName,
+              type: classified.type || data.type || 'CONTAINER',
+              selector: data.selector,
+            };
+            setSpots(prev => [...prev, newSpot]);
+          } catch (err) { console.error('[Picker] Error processing spot:', err); }
+        } else if (msg === '__PICKER_ESCAPE__') {
+          setIsPickingMode(false);
+          const iframe = iframeRef.current;
+          if (iframe?.contentWindow) {
+            iframe.contentWindow.postMessage({ type: 'picker-command', action: 'disable' }, '*');
+          }
+        }
+      };
+      window.addEventListener('message', onMessage);
 
-    // In web mode (iframe), webview events don't exist — run extraction directly
-    const isElectronWebview = typeof (webview as any).executeJavaScript === 'function';
-
-    if (!isElectronWebview) {
-      // Web mode: run extraction when URL changes
+      // Run extraction
       if (websiteUrl) {
         setIsAnalyzing(true);
         setAnalysisComplete(false);
@@ -472,10 +509,12 @@ export default function PageEditorPage() {
           setIsAnalyzing(false);
         });
       }
-      return;
+      return () => { window.removeEventListener('message', onMessage); };
     }
 
     // Electron mode: use webview events
+    const webview = webviewRef.current;
+    if (!webview) return;
     const onStartLoading = () => {
       setIsWebviewLoading(true);
       setWebviewError(null);
@@ -553,12 +592,17 @@ export default function PageEditorPage() {
   const togglePickingMode = () => {
     const next = !isPickingMode;
     setIsPickingMode(next);
-    const webview = webviewRef.current as any;
-    if (webview) {
-      const cmd = next
-        ? 'window.__PS_PICKER__ && window.__PS_PICKER__.enable()'
-        : 'window.__PS_PICKER__ && window.__PS_PICKER__.disable()';
-      webview.executeJavaScript(cmd).catch(() => {});
+    const cmd = next
+      ? 'window.__PS_PICKER__ && window.__PS_PICKER__.enable()'
+      : 'window.__PS_PICKER__ && window.__PS_PICKER__.disable()';
+    if (isElectron()) {
+      const webview = webviewRef.current as any;
+      if (webview) webview.executeJavaScript(cmd).catch(() => {});
+    } else {
+      const iframe = iframeRef.current;
+      if (iframe?.contentWindow) {
+        iframe.contentWindow.postMessage({ type: 'picker-command', action: next ? 'enable' : 'disable' }, '*');
+      }
     }
   };
 
@@ -610,11 +654,15 @@ export default function PageEditorPage() {
     const spot = spots.find(s => s.id === spotId);
     setSpots(spots.filter(s => s.id !== spotId));
     if (spot) {
-      const webview = webviewRef.current as any;
-      if (webview) {
-        webview.executeJavaScript(
-          `window.__PS_PICKER__ && window.__PS_PICKER__.removeHighlight(${JSON.stringify(spot.selector)})`
-        ).catch(() => {});
+      const cmd = `window.__PS_PICKER__ && window.__PS_PICKER__.removeHighlight(${JSON.stringify(spot.selector)})`;
+      if (isElectron()) {
+        const webview = webviewRef.current as any;
+        if (webview) webview.executeJavaScript(cmd).catch(() => {});
+      } else {
+        const iframe = iframeRef.current;
+        if (iframe?.contentWindow) {
+          iframe.contentWindow.postMessage({ type: 'picker-command', action: 'removeHighlight', selector: spot.selector }, '*');
+        }
       }
     }
   };
@@ -910,6 +958,7 @@ export default function PageEditorPage() {
                   </>
                 ) : (
                   <iframe
+                    ref={iframeRef}
                     src={`/api/web/proxy?url=${encodeURIComponent(websiteUrl)}`}
                     style={{ width: '100%', height: '100%', border: 'none' }}
                   />
