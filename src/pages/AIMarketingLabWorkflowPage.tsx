@@ -327,6 +327,12 @@ export default function AIMarketingLabWorkflowPage() {
         useExperienceLabStore.setState({ inputs: clearedInputs, currentInputStep: stepIdx, output: null });
         setCurrentStep('inputs');
       }
+    } else {
+      // Fallback: reset to industry step to avoid inconsistent state
+      setIndustry('');
+      setScenario('');
+      useExperienceLabStore.setState({ inputs: {}, currentInputStep: 0, output: null });
+      setCurrentStep('industry');
     }
   };
 
@@ -421,8 +427,6 @@ export default function AIMarketingLabWorkflowPage() {
                     canContinueInput={canContinueInput()}
                     onExploreAnother={handleExploreAnother}
                     messagesEndRef={messagesEndRef}
-              output={output}
-                  output={output}
                     output={output}
                     onEditMessage={handleEditMessage}
                   />
@@ -464,7 +468,6 @@ export default function AIMarketingLabWorkflowPage() {
                   canContinueInput={canContinueInput()}
                   onExploreAnother={handleExploreAnother}
                   messagesEndRef={messagesEndRef}
-              output={output}
                   output={output}
                   showCollapse
                   onCollapse={() => setCollapsed(true)}
@@ -607,7 +610,7 @@ function ChatPanel({
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
-                        <div className="px-5 py-3 bg-gradient-to-b from-[#4e8ecc] to-[#487ec2] text-white rounded-tl-[24px] rounded-tr-[24px] rounded-bl-[24px] rounded-br-[4px] whitespace-nowrap">
+                        <div className="w-fit max-w-[80%] px-5 py-3 bg-gradient-to-b from-[#4e8ecc] to-[#487ec2] text-white rounded-tl-[24px] rounded-tr-[24px] rounded-bl-[24px] rounded-br-[4px]">
                           <div className="text-sm leading-relaxed">{msg.content}</div>
                         </div>
                       </div>
