@@ -1,7 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { GrainGradient } from '@paper-design/shaders-react'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useChatStore } from '../stores/chatStore'
 
@@ -218,22 +217,14 @@ export default function Layout() {
         {/* Content */}
         <main className="flex-1 overflow-hidden relative bg-white">
           <div className={`absolute inset-0 pointer-events-none transition-all duration-500 ${isExperienceLabLanding ? 'p-4 pt-0' : 'p-0'}`}>
-            <div className={`w-full h-full overflow-hidden transition-all duration-500 ${isExperienceLabLanding ? 'rounded-3xl' : 'rounded-none'}`}>
-              <GrainGradient
-                style={{ width: '100%', height: '100%' }}
-                colors={['#ffd6f3', '#adbfff']}
-                colorBack="#fffafa"
-                softness={0.44}
-                intensity={0.49}
-                noise={0.00}
-                shape="wave"
-                speed={0.46}
-                scale={1.92}
-                rotation={324}
-                offsetX={0}
-                offsetY={0}
-              />
-            </div>
+            <div
+              className={`w-full h-full overflow-hidden transition-all duration-500 ${isExperienceLabLanding ? 'rounded-3xl' : 'rounded-none'}`}
+              style={{
+                backgroundImage: 'url(/gradient-bg.png)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }}
+            />
           </div>
           <div className="relative z-10 h-full">
             <Outlet />

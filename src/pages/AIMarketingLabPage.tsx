@@ -96,13 +96,11 @@ export default function AIMarketingLabPage() {
       />
 
       {/* Start Button */}
-      {selectedGoal && (
-        <div className="text-center mt-6 md:mt-8">
-          <Button variant="primary" onClick={handleStart}>
-            Start guided experience
-          </Button>
-        </div>
-      )}
+      <div className={`text-center mt-6 md:mt-8 transition-opacity duration-300 ${selectedGoal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <Button variant="primary" onClick={handleStart}>
+          Start guided experience
+        </Button>
+      </div>
 
       {/* Spacer to push footer down */}
       <div className="flex-1" />
@@ -186,19 +184,12 @@ function GoalCarousel({
               onClick={() => onSelect(g.id)}
               className={`flex-shrink-0 w-60 md:w-72 p-4 md:p-5 rounded-2xl text-left transition-all cursor-pointer ${
                 isSelected
-                  ? 'border-2 border-blue-400 bg-blue-50/80 shadow-md'
+                  ? 'border border-transparent backdrop-blur-sm bg-white/70 shadow-md'
                   : 'border border-white/60 backdrop-blur-sm bg-white/10 shadow-[0_2px_4px_rgba(0,0,0,0.02),0_8px_24px_rgba(0,0,0,0.04)] hover:bg-white/40 hover:shadow-[0_4px_8px_rgba(0,0,0,0.03),0_12px_32px_rgba(0,0,0,0.06)]'
               }`}
             >
-              {isSelected && (
-                <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
-                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-              )}
-              <Icon className={`w-5 h-5 md:w-6 md:h-6 mb-2 md:mb-3 ${isSelected ? 'text-blue-600' : 'text-gray-400'}`} />
-              <div className={`font-medium text-sm mb-1 ${isSelected ? 'text-blue-900' : 'text-gray-900'}`}>{g.label}</div>
+              <Icon className={`w-5 h-5 md:w-6 md:h-6 mb-2 md:mb-3 ${isSelected ? 'text-gray-900' : 'text-gray-600'}`} strokeWidth={1.5} />
+              <div className={`font-medium text-sm mb-1 text-gray-900`}>{g.label}</div>
               <div className="text-xs text-gray-500 leading-relaxed">{g.description}</div>
             </button>
           );
