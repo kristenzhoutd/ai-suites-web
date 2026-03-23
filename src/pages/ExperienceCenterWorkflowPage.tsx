@@ -17,6 +17,7 @@ import { getScenarioConfig } from '../experience-center/registry/scenarioRegistr
 import { skillFamilies } from '../experience-center/registry/skillFamilies';
 import SkillProgressBlock, { type ProgressStep } from '../experience-center/output-formats/SkillProgressBlock';
 import { ModularOutputRenderer } from '../experience-center/output-formats/modules';
+import OutputLoader from '../experience-center/output-formats/OutputLoader';
 import SlideModal from '../experience-center/output-formats/slides/SlideModal';
 import SlidePreview from '../experience-center/output-formats/slides/SlidePreview';
 import SlideOutput from '../experience-center/output-formats/slides/SlideOutput';
@@ -114,6 +115,7 @@ export default function ExperienceCenterWorkflowPage() {
   const activeArtifact = artifacts.find(a => a.id === activeArtifactId) || artifacts[0];
   const [showSlidePreview, setShowSlidePreview] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [generatingSlides, setGeneratingSlides] = useState(false);
   const [usedScenarios, setUsedScenarios] = useState<Set<string>>(new Set());
   const [collapsed, setCollapsed] = useState(false);
   const [mobileView, setMobileView] = useState<'chat' | 'output'>('output');
@@ -123,8 +125,8 @@ export default function ExperienceCenterWorkflowPage() {
   const hasOutput = currentStep === 'output' && !!output;
   const [hasEverOutput, setHasEverOutput] = useState(false);
   useEffect(() => {
-    if (output) setHasEverOutput(true);
-  }, [output]);
+    if (output || (isThinkingActive && currentStep === 'generating')) setHasEverOutput(true);
+  }, [output, isThinkingActive, currentStep]);
 
   // Detect mobile/tablet
   useEffect(() => {
@@ -435,6 +437,7 @@ export default function ExperienceCenterWorkflowPage() {
       { id: `user-slides-${Date.now()}`, role: 'user' as const, content: `Create ${config.length}-slide ${config.style} deck` },
       { id: `ai-slides-${Date.now()}`, role: 'ai' as const, content: 'Creating your presentation...', type: 'generation' as const },
     ]);
+    setGeneratingSlides(true);
 
     const slideSteps: Array<{ message: string; stage?: ProgressStep['stage'] }> = [
       { message: 'Mapping output into presentation structure', stage: 'route' },
@@ -468,6 +471,7 @@ export default function ExperienceCenterWorkflowPage() {
       clearInterval(interval);
       addStep('Deck ready — view in the panel', 'ui_update');
       setIsThinkingActive(false);
+      setGeneratingSlides(false);
 
       // Add slides as artifact
       const deckData = result as DeckData;
@@ -488,6 +492,7 @@ export default function ExperienceCenterWorkflowPage() {
       clearInterval(interval);
       addStep('Slide generation failed', 'skill_result');
       setIsThinkingActive(false);
+      setGeneratingSlides(false);
       console.error('[ExperienceCenter] Slide generation failed:', err);
     }
   }, [output, scenario, goal, industry]);
@@ -711,7 +716,13 @@ export default function ExperienceCenterWorkflowPage() {
                   )}
                   {/* Scrollable content */}
                   <div className="flex-1 overflow-y-auto px-5 py-4 pb-20">
-                    {output && (
+                    {isThinkingActive && !output && (
+                      <OutputLoader variant="output" outputFormatKey={getScenarioConfig(scenario)?.outputFormatKey} />
+                    )}
+                    {generatingSlides && (
+                      <OutputLoader variant="slides" />
+                    )}
+                    {output && !generatingSlides && (
                       <>
                         {activeArtifact?.type === 'slides' ? (
                           <SlideOutput
@@ -818,7 +829,13 @@ export default function ExperienceCenterWorkflowPage() {
                   )}
                   {/* Scrollable content */}
                   <div className="flex-1 overflow-y-auto px-5 py-4 pb-20">
-                    {output && (
+                    {isThinkingActive && !output && (
+                      <OutputLoader variant="output" outputFormatKey={getScenarioConfig(scenario)?.outputFormatKey} />
+                    )}
+                    {generatingSlides && (
+                      <OutputLoader variant="slides" />
+                    )}
+                    {output && !generatingSlides && (
                       <>
                         {activeArtifact?.type === 'slides' ? (
                           <SlideOutput
