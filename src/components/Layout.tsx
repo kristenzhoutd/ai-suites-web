@@ -213,9 +213,13 @@ export default function Layout() {
             </span>
           </Link>
           <div className="flex-1" />
-          <div className="hidden md:flex items-center gap-2 text-[11px] text-gray-400 mr-6 window-no-drag">
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('open-api-key-modal'))}
+            className="hidden md:flex items-center gap-2 text-[11px] text-gray-400 mr-6 window-no-drag cursor-pointer hover:text-gray-600 transition-colors"
+          >
+            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${(() => { try { return !!localStorage.getItem('ai-suites-api-key'); } catch { return false; } })() ? 'bg-emerald-400' : 'bg-gray-300'}`} />
             Powered by Treasure AI
-          </div>
+          </button>
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('open-booking-modal'))}
             className="flex-shrink-0 flex items-center gap-1.5 px-3 md:px-4 py-1.5 text-[11px] md:text-xs font-semibold text-white bg-gray-900 rounded-full hover:bg-gray-800 transition-colors shadow-sm window-no-drag cursor-pointer"

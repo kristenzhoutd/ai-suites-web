@@ -22,6 +22,7 @@ import SlideModal from '../experience-center/output-formats/slides/SlideModal';
 import SlidePreview from '../experience-center/output-formats/slides/SlidePreview';
 import SlideOutput from '../experience-center/output-formats/slides/SlideOutput';
 import type { DeckConfig, DeckData } from '../experience-center/output-formats/slides/types';
+import ApiKeySetupModal from '../components/ApiKeySetupModal';
 
 // ============================================================
 // Icon maps
@@ -141,6 +142,14 @@ export default function ExperienceCenterWorkflowPage() {
     const handler = () => setShowBookingModal(true);
     window.addEventListener('open-booking-modal', handler);
     return () => window.removeEventListener('open-booking-modal', handler);
+  }, []);
+
+  // Listen for API key modal event from nav bar
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  useEffect(() => {
+    const handler = () => setShowApiKeyModal(true);
+    window.addEventListener('open-api-key-modal', handler);
+    return () => window.removeEventListener('open-api-key-modal', handler);
   }, []);
 
   // Redirect if no goal selected
@@ -946,6 +955,12 @@ export default function ExperienceCenterWorkflowPage() {
           onClose={() => setShowSlidePreview(false)}
         />
       )}
+
+      {/* API Key Setup Modal */}
+      <ApiKeySetupModal
+        isOpen={showApiKeyModal}
+        onClose={() => setShowApiKeyModal(false)}
+      />
     </div>
   );
 }

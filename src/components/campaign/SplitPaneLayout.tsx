@@ -97,7 +97,7 @@ export default function SplitPaneLayout({
         {collapsed && onToggleCollapse && (
           <button
             onClick={onToggleCollapse}
-            className="absolute top-6 left-6 w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition-all cursor-pointer z-10"
+            className="absolute top-2 left-2 w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-gray-200 hover:bg-gray-50 shadow-sm transition-all cursor-pointer z-20"
             title="Open chat"
           >
             <MessageSquare className="w-3.5 h-3.5 text-gray-700" />
