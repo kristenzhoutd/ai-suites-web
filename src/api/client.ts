@@ -7,14 +7,20 @@ interface ApiOptions {
   body?: any;
 }
 
+function getStoredApiKey(): string {
+  try { return localStorage.getItem('ai-suites-api-key') || ''; } catch { return ''; }
+}
+
 async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
   const { method = 'GET', body } = options;
+  const apiKey = getStoredApiKey();
 
   const response = await fetch(`${API_BASE}${endpoint}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
       'x-app-password': APP_PASSWORD,
+      ...(apiKey ? { 'x-api-key': apiKey } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
   });
