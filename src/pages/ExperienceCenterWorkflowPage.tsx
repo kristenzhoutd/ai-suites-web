@@ -653,7 +653,7 @@ export default function ExperienceCenterWorkflowPage() {
             </div>
           )}
 
-          <div className="flex-1 flex flex-col md:flex-row overflow-hidden pb-3 pr-3">
+          <div className="flex-1 flex flex-col md:flex-row overflow-hidden pb-3">
           {hasEverOutput ? (
             isMobile ? (
               /* Mobile post-output: content area (tabs rendered above) */
@@ -684,7 +684,7 @@ export default function ExperienceCenterWorkflowPage() {
                   {output && visibleOutputSections >= 1 && (
                     <div className="flex items-center justify-between px-4 pt-2.5 border-b border-gray-200/60 bg-[#F7F8FB] z-10 flex-shrink-0">
                       {artifacts.length > 1 ? (
-                        <div className="flex items-end gap-5 max-w-md -mb-px">
+                        <div className="flex items-end gap-5 max-w-md -mb-[13px]">
                           {artifacts.map(a => {
                             const isActive = a.id === activeArtifactId;
                             const typeConfig = a.type === 'slides'
@@ -725,7 +725,7 @@ export default function ExperienceCenterWorkflowPage() {
                     </div>
                   )}
                   {/* Scrollable content */}
-                  <div className="flex-1 overflow-y-auto px-5 py-4 pb-20">
+                  <div className="flex-1 overflow-y-auto pl-5 pr-5 py-4 pb-20 scrollbar-thin">
                     {isThinkingActive && !output && (
                       <OutputLoader variant="output" outputFormatKey={getScenarioConfig(scenario)?.outputFormatKey} />
                     )}
@@ -798,7 +798,7 @@ export default function ExperienceCenterWorkflowPage() {
                   {output && visibleOutputSections >= 1 && (
                     <div className="flex items-center justify-between px-5 pt-2.5 border-b border-gray-200/60 bg-[#F7F8FB] z-10 flex-shrink-0 rounded-t-2xl">
                       {artifacts.length > 1 ? (
-                        <div className="flex items-end gap-5 max-w-md -mb-px">
+                        <div className="flex items-end gap-5 max-w-md -mb-[13px]">
                           {artifacts.map(a => {
                             const isActive = a.id === activeArtifactId;
                             const typeConfig = a.type === 'slides'
@@ -839,7 +839,7 @@ export default function ExperienceCenterWorkflowPage() {
                     </div>
                   )}
                   {/* Scrollable content */}
-                  <div className="flex-1 overflow-y-auto px-5 py-4 pb-20">
+                  <div className="flex-1 overflow-y-auto pl-5 pr-5 py-4 pb-20 scrollbar-thin">
                     {isThinkingActive && !output && (
                       <OutputLoader variant="output" outputFormatKey={getScenarioConfig(scenario)?.outputFormatKey} />
                     )}
