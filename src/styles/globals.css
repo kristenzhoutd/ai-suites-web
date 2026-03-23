@@ -164,6 +164,36 @@
   background: transparent;
 }
 
+/* ============ Thin Scrollbar (overlay, inside padding) ============ */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  scrollbar-gutter: stable;
+}
+.scrollbar-thin:hover {
+  scrollbar-color: rgba(0,0,0,0.15) transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  position: absolute;
+  right: 0;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+}
+.scrollbar-thin:hover::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.15);
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,0,0,0.25);
+}
+
 /* ============ Chat Message Animations ============ */
 @keyframes fadeIn {
   from {
