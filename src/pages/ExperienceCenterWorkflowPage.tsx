@@ -731,7 +731,7 @@ function ChatPanel({
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-5 md:gap-6 max-w-2xl mx-auto w-full">
+      <div className={`flex-1 overflow-y-auto p-4 md:p-6 flex flex-col max-w-2xl mx-auto w-full ${currentStep === 'generating' ? 'gap-3' : 'gap-5 md:gap-6'}`}>
         {messages.map((msg) => (
           <div key={msg.id}>
             {msg.type === 'cta' && currentStep === 'output' ? (
@@ -754,7 +754,7 @@ function ChatPanel({
             ) : (
               <>
                 {msg.content && (
-                  <div className={`flex animate-fade-in ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`flex animate-fade-in ${msg.role === 'user' ? 'justify-end' : 'justify-start'} ${msg.type === 'generation' && isThinkingActive ? 'mb-[-8px]' : ''}`}>
                     {msg.role === 'user' ? (
                       <div className="flex items-center gap-2 group">
                         <button
@@ -764,7 +764,7 @@ function ChatPanel({
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
-                        <div className="w-fit max-w-[240px] px-5 py-3 bg-gradient-to-b from-[#4e8ecc] to-[#487ec2] text-white rounded-tl-[24px] rounded-tr-[24px] rounded-bl-[24px] rounded-br-[4px]">
+                        <div className="w-fit max-w-xs px-5 py-3 bg-gradient-to-b from-[#4e8ecc] to-[#487ec2] text-white rounded-tl-[24px] rounded-tr-[24px] rounded-bl-[24px] rounded-br-[4px]">
                           <div className="text-sm leading-relaxed">{msg.content}</div>
                         </div>
                       </div>
@@ -808,7 +808,7 @@ function ChatPanel({
               content={thinkingSteps.join('\n') || 'Initializing...'}
               isStreaming={isThinkingActive}
             />
-            {activeRun && <ExecutionTrace run={activeRun} />}
+            {activeRun && <ExecutionTrace run={activeRun} title="Running" hideIcon hideStatus />}
           </div>
         )}
         <div ref={messagesEndRef} />
