@@ -35,7 +35,7 @@ async function callLLM(systemPrompt: string, userPrompt: string, apiKeyOverride?
     },
     body: JSON.stringify({
       model,
-      max_tokens: 4096,
+      max_tokens: 3000,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
     }),

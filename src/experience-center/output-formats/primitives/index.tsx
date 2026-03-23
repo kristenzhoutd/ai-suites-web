@@ -26,7 +26,7 @@ export function OutputSection({ title, icon, children, className = '' }: {
 
 // ── Hero Summary Card ──
 
-export function HeroSummaryCard({ headline, supporting, goal, audience, impact, label = 'AI-Generated Recommendation', scenarioContext }: {
+export function HeroSummaryCard({ headline, supporting, goal, audience, impact, label = 'AI-Generated Recommendation', scenarioContext, keyPoints }: {
   headline: string;
   supporting?: string;
   goal?: string;
@@ -34,9 +34,11 @@ export function HeroSummaryCard({ headline, supporting, goal, audience, impact, 
   impact?: string;
   label?: string;
   scenarioContext?: { outcome?: string; industry?: string; scenario?: string; kpi?: string };
+  keyPoints?: string[];
 }) {
   return (
     <div className="border border-gray-200/60 rounded-2xl p-5 mb-4 bg-white shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
+      {/* Headline */}
       <div className="flex items-start gap-3 mb-3">
         <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0 mt-0.5">
           <Sparkles className="w-4 h-4 text-blue-500" />
@@ -44,17 +46,33 @@ export function HeroSummaryCard({ headline, supporting, goal, audience, impact, 
         <div>
           <div className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1">{label}</div>
           <div className="text-sm font-semibold text-gray-900 leading-snug">{headline}</div>
-          {supporting && <p className="text-xs text-gray-500 mt-1 leading-relaxed">{supporting}</p>}
+          {supporting && <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{supporting}</p>}
         </div>
       </div>
-      {(goal || audience) && (
-        <div className="flex items-center gap-3 pt-3 border-t border-gray-100 text-[11px] text-gray-400">
-          {goal && <span>Goal: {goal}</span>}
-          {goal && audience && <span className="w-1 h-1 rounded-full bg-gray-300" />}
-          {audience && <span>Audience: {audience}</span>}
+
+      {/* Key points */}
+      {keyPoints && keyPoints.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-gray-100 space-y-1.5">
+          {keyPoints.map((point, i) => (
+            <div key={i} className="flex items-start gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 flex-shrink-0" />
+              <span className="text-xs text-gray-600 leading-relaxed">{point}</span>
+            </div>
+          ))}
         </div>
       )}
-      {impact && <div className="mt-1.5 text-sm text-blue-600 font-medium">{impact}</div>}
+
+      {/* Impact */}
+      {impact && (
+        <div className="mt-3 pt-3 border-t border-gray-100">
+          <div className="flex items-start gap-2">
+            <TrendingUp className="w-3.5 h-3.5 text-blue-500 mt-0.5 flex-shrink-0" />
+            <span className="text-sm text-blue-600 font-medium leading-snug">{impact}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Context chips */}
       {scenarioContext && (
         <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-100">
           {scenarioContext.outcome && <span className="text-[11px] px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 font-medium">{scenarioContext.outcome}</span>}
