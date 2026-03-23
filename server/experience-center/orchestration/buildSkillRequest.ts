@@ -24,7 +24,7 @@ Generate a JSON object matching this schema exactly. Every field is required.
     "topRecommendation": "string — 1-2 sentence strategic recommendation",
     "impactFraming": "string — projected impact statement with metrics and timeframe"
   },
-  "executiveSummary": "string — 2-3 paragraphs: what/who/why, phased approach, benchmark comparison",
+  "executiveSummary": "string — 3 SHORT sentences separated by newlines: what it does, the approach, expected outcome. Keep each sentence under 20 words.",
   "audienceCards": [
     {
       "name": "string — industry-specific segment name",

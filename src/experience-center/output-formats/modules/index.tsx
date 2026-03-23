@@ -17,7 +17,7 @@ import {
   MetricStatCard, DeltaChip, ScoreBar, ChannelAllocationStrip,
   MiniSparkline, RankedScoreRow, TimelineStrip, SeverityIndicator,
 } from '../primitives';
-import { Sparkles, Lightbulb, Target, Send, ArrowRight, TrendingUp, BarChart3, Shield, Clock } from 'lucide-react';
+import { Sparkles, Lightbulb, Target, Send, ArrowRight, TrendingUp, BarChart3, Shield, Clock, Zap } from 'lucide-react';
 import type { OutputModule } from '../../registry/types';
 
 // ── Module Props ──
@@ -365,22 +365,43 @@ function InsightPanelModule({ output }: ModuleProps) {
   return (
     <OutputSection title="Why This Recommendation" icon={<Shield className="w-4 h-4" />}>
       <div className="space-y-4">
-        <div className="text-sm text-gray-700 leading-relaxed">{output.insightPanel.whyThisRecommendation}</div>
+        {/* Rationale */}
+        <div className="bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl p-4 border border-gray-100">
+          <div className="text-sm text-gray-700 leading-relaxed">{output.insightPanel.whyThisRecommendation}</div>
+        </div>
+
+        {/* How selections shaped this output */}
         {output.insightPanel.whatChanged.length > 0 && (
           <div>
-            <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">How your selections shaped this output</div>
-            <div className="space-y-1">
+            <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">How your selections shaped this output</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {output.insightPanel.whatChanged.map((item, i) => (
-                <div key={i} className="flex items-start gap-2 text-xs text-gray-600">
-                  <div className="w-1.5 h-1.5 rounded-full bg-gray-300 mt-1.5 flex-shrink-0" />
-                  {item}
+                <div key={i} className="flex items-start gap-2.5 p-2.5 bg-gray-50/80 rounded-lg border border-gray-100">
+                  <div className="w-5 h-5 rounded-md bg-indigo-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Sparkles className="w-3 h-3 text-indigo-400" />
+                  </div>
+                  <span className="text-xs text-gray-600 leading-relaxed">{item}</span>
                 </div>
               ))}
             </div>
           </div>
         )}
+
+        {/* Powered by Treasure AI */}
         {output.insightPanel.howTreasureHelps.length > 0 && (
-          <SignalChipGroup signals={output.insightPanel.howTreasureHelps} label="Powered by Treasure AI" />
+          <div>
+            <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Powered by Treasure AI</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {output.insightPanel.howTreasureHelps.map((item, i) => (
+                <div key={i} className="flex items-start gap-2.5 p-2.5 bg-blue-50/40 rounded-lg border border-blue-100/60">
+                  <div className="w-5 h-5 rounded-md bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Zap className="w-3 h-3 text-blue-500" />
+                  </div>
+                  <span className="text-xs text-blue-900/70 leading-relaxed">{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </OutputSection>
@@ -415,7 +436,7 @@ export const moduleRegistry: Record<string, ModuleComponent> = {
 
 export const outputCompositions: Record<string, string[]> = {
   'campaign_brief': [
-    'executive_summary',
+
     'campaign_brief',
     'audience_rationale',
     'channel_strategy',
@@ -425,7 +446,7 @@ export const outputCompositions: Record<string, string[]> = {
     'insight_panel',
   ],
   'journey_map': [
-    'executive_summary',
+
     'journey_map',
     'audience_rationale',
     'kpi_framework',
@@ -434,7 +455,7 @@ export const outputCompositions: Record<string, string[]> = {
     'insight_panel',
   ],
   'segment_cards': [
-    'executive_summary',
+
     'segment_cards',
     'kpi_framework',
     'business_impact',
@@ -442,7 +463,7 @@ export const outputCompositions: Record<string, string[]> = {
     'insight_panel',
   ],
   'performance_diagnosis': [
-    'executive_summary',
+
     'performance_diagnosis',
     'audience_rationale',
     'channel_strategy',
@@ -452,7 +473,7 @@ export const outputCompositions: Record<string, string[]> = {
     'insight_panel',
   ],
   'insight_summary': [
-    'executive_summary',
+
     'insight_summary',
     'segment_cards',
     'kpi_framework',
@@ -476,6 +497,22 @@ const DEFAULT_COMPOSITION = [
 // Modular Output Renderer
 // ════════════════════════════════════════════════════════════
 
+/**
+ * Extract 2-4 concise key points from the executive summary.
+ * Takes the first sentence from each paragraph as a summary bullet.
+ */
+function extractKeyPoints(executiveSummary: string): string[] {
+  if (!executiveSummary) return [];
+  const paragraphs = executiveSummary.split('\n').filter(p => p.trim());
+  return paragraphs
+    .map(p => {
+      // Take the first sentence (up to first period followed by space or end)
+      const match = p.match(/^(.+?\.)\s/);
+      return match ? match[1] : p.substring(0, 120) + (p.length > 120 ? '...' : '');
+    })
+    .slice(0, 4);
+}
+
 export function ModularOutputRenderer({ output, outputFormatKey, visibleSections, scenarioContext }: {
   output: OutputData;
   outputFormatKey?: string;
@@ -484,9 +521,12 @@ export function ModularOutputRenderer({ output, outputFormatKey, visibleSections
 }) {
   const composition = (outputFormatKey && outputCompositions[outputFormatKey]) || DEFAULT_COMPOSITION;
 
+  // Extract 2-4 key points from executive summary for the hero card
+  const keyPoints = extractKeyPoints(output.executiveSummary);
+
   return (
     <>
-      {/* Hero summary — always first */}
+      {/* Hero summary — always first, carries the essential summary */}
       <div className={`transition-all duration-500 ${visibleSections > 0 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
         <HeroSummaryCard
           headline={output.summaryBanner.topRecommendation}
@@ -494,6 +534,7 @@ export function ModularOutputRenderer({ output, outputFormatKey, visibleSections
           audience={output.summaryBanner.audience}
           impact={output.summaryBanner.impactFraming}
           scenarioContext={scenarioContext}
+          keyPoints={keyPoints}
         />
       </div>
 
