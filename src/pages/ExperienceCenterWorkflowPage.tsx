@@ -18,6 +18,7 @@ import { skillFamilies } from '../experience-center/registry/skillFamilies';
 import { ThinkingBlock } from '../components/StreamingMessage';
 import ExecutionTrace from '../components/ExecutionTrace';
 import { useTraceStore } from '../stores/traceStore';
+import { ModularOutputRenderer } from '../experience-center/output-formats/modules';
 
 // ============================================================
 // Icon maps
@@ -419,7 +420,7 @@ export default function ExperienceCenterWorkflowPage() {
       const interval = setInterval(() => {
         count++;
         setVisibleOutputSections(count);
-        if (count >= 7) {
+        if (count >= 11) {
           clearInterval(interval);
           setTimeout(() => setShowCTA(true), 600);
         }
@@ -586,9 +587,21 @@ export default function ExperienceCenterWorkflowPage() {
               ) : (
                 <div className="flex-1 relative overflow-hidden bg-[#F7F8FB] rounded-2xl">
                   <div className="h-full overflow-y-auto p-4 pb-20">
-                    {output && <OutputDisplay output={output} visibleSections={visibleOutputSections} />}
+                    {output && (
+                      <ModularOutputRenderer
+                        output={output}
+                        outputFormatKey={getScenarioConfig(scenario)?.outputFormatKey}
+                        visibleSections={visibleOutputSections}
+                        scenarioContext={{
+                          outcome: goals.find(g => g.id === goal)?.label,
+                          industry: industries.find(ind => ind.id === industry)?.label,
+                          scenario: getScenarioConfig(scenario)?.title,
+                          kpi: getScenarioConfig(scenario)?.kpi,
+                        }}
+                      />
+                    )}
                   </div>
-                  {visibleOutputSections >= 7 && output && (
+                  {visibleOutputSections >= 8 && output && (
                     <div className="absolute bottom-3 right-3 z-10">
                       <FloatingContextCard output={output} onBook={() => setShowBookingModal(true)} />
                     </div>
@@ -628,9 +641,21 @@ export default function ExperienceCenterWorkflowPage() {
                 {/* Right: Output */}
                 <div className="h-full relative bg-[#F7F8FB] rounded-2xl">
                   <div className="h-full overflow-y-auto p-6 pb-20">
-                    {output && <OutputDisplay output={output} visibleSections={visibleOutputSections} />}
+                    {output && (
+                      <ModularOutputRenderer
+                        output={output}
+                        outputFormatKey={getScenarioConfig(scenario)?.outputFormatKey}
+                        visibleSections={visibleOutputSections}
+                        scenarioContext={{
+                          outcome: goals.find(g => g.id === goal)?.label,
+                          industry: industries.find(ind => ind.id === industry)?.label,
+                          scenario: getScenarioConfig(scenario)?.title,
+                          kpi: getScenarioConfig(scenario)?.kpi,
+                        }}
+                      />
+                    )}
                   </div>
-                  {visibleOutputSections >= 7 && output && (
+                  {visibleOutputSections >= 8 && output && (
                     <div className="absolute bottom-4 right-4 z-10">
                       <FloatingContextCard output={output} onBook={() => setShowBookingModal(true)} />
                     </div>
