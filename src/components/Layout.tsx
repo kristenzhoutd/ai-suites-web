@@ -296,6 +296,15 @@ export default function Layout() {
 
         {/* Placeholder nav items (disabled) */}
         <nav className="flex-1 flex flex-col items-center space-y-1">
+          <a
+            href="/experience-lab-presentation"
+            title="Leadership Presentation"
+            className="group w-10 h-10 flex items-center justify-center rounded-lg transition-colors text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5" />
+            </svg>
+          </a>
           {[
             { label: 'Favorites', icon: '/icons/nav-favorites.svg' },
             { label: 'Data', icon: '/icons/nav-data.svg' },
